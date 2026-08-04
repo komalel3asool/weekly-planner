@@ -57,6 +57,7 @@ export function useWeeklyData(weekKey: string) {
           .eq('week_key', prevWeekKey)
 
         if (prevRecords?.length > 0 && prevRecords[0].data?.weekly?.length > 0) {
+          console.log('📋 Carrying over', prevRecords[0].data.weekly.length, 'habits from', prevWeekKey)
           // Copy previous week's habits with count reset
           const carryover = {
             ...seed(),
@@ -67,11 +68,10 @@ export function useWeeklyData(weekKey: string) {
           setData(carryover)
           
           // Save this carryover
-          await supabase.from('weekly_plans').insert({
-            user_id: userId,
-            week_key: weekKey,
-            data: carryover
-          })
+          await supabase.from('weekly_plans').upsert(
+            { user_id: userId, week_key: weekKey, data: carryover },
+            { onConflict: 'user_id,week_key' }
+          )
         } else {
           setData(seed())
         }
