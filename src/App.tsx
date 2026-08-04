@@ -51,6 +51,7 @@ export default function App() {
   if (!user) return <Auth onSuccess={() => {}} />
   if (view === 'trading') return <TradingTracker onBack={() => setView('planner')} />
   if (view === 'gym') return <GymTracker onBack={() => setView('planner')} />
+  if (view === 'pdf') return <PdfReader onBack={() => setView('planner')} />
   return <Planner setView={setView} />
 }
 
@@ -80,8 +81,8 @@ function Planner({ setView }: { setView: (v: any) => void }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#78350f' }}>Weekly</h1>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button onClick={() => setView('trading')} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>📈 Trading | <button onClick={() => setView('pdf')} style={{ padding: '0.5rem 1rem', background: '#78350f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '0.5rem' }}>📚 PDF</button>
-        </button>
+          <button onClick={() => setView('trading')} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>📈 Trading</button>
+        <button onClick={() => setView('pdf')} style={{ padding: '0.5rem 1rem', background: '#78350f', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', marginRight: '0.5rem' }}>📚 PDF</button>
         <button onClick={() => setView('gym')} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>💪 Gym</button>
         <button onClick={() => setWeekOffset(weekOffset + 1)} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>← Prev</button>
           <button onClick={() => setWeekOffset(0)} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>This Week</button>
