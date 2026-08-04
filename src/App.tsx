@@ -64,17 +64,53 @@ function Planner({ setView }: { setView: (v: any) => void }) {
   baseDate.setDate(baseDate.getDate() - 7 * weekOffset)
   const weekKey = getWeekKey(baseDate)
   const { data, update } = useWeeklyData(weekKey)
-  const todayIdx = getTodayIdx()
   
+  // Calculate if this is the current week
+  const currentWeekKey = getWeekKey(today)
+  const isCurrentWeek = weekKey === currentWeekKey
+  
+  // Get today's index only if viewing current week
+  const todayIdx = isCurrentWeek ? getTodayIdx() : -1
+  
+  // Calculate dates for this week, using baseDate
   const dayDates = DAYS.map((_, i) => {
-    const d = new Date()
-    d.setDate(d.getDate() - (d.getDay() === 0 ? 3 : d.getDay() - 1) + i)
+    const d = new Date(baseDate)
+    const dayOfWeek = d.getDay() || 7
+    d.setDate(d.getDate() - dayOfWeek + 1 + i)
     return d
   })
 
   if (showImport) {
     return <ImportData onSuccess={() => setShowImport(false)} />
   }
+
+  // Carryover habits from previous week when loading new week
+  useEffect(() => {
+    if (loading || !isCurrentWeek) return
+    
+    const carryover = async () => {
+      const prevDate = new Date(baseDate)
+      prevDate.setDate(prevDate.getDate() - 7)
+      const prevWeekKey = getWeekKey(prevDate)
+      
+      const { data: prevRecords } = await supabase
+        .from('weekly_plans')
+        .select('data')
+        .eq('user_id', (supabase.auth.user() as any)?.id)
+        .eq('week_key', prevWeekKey)
+      
+      if (prevRecords?.[0]?.data?.weekly && prevRecords[0].data.weekly.length > 0) {
+        const carriedWeekly = prevRecords[0].data.weekly.map((h: any) => ({
+          ...h,
+          count: 0
+        }))
+        const carriedDaily = prevRecords[0].data.daily || []
+        update(d => ({ ...d, weekly: carriedWeekly, daily: carriedDaily }))
+      }
+    }
+    
+    carryover()
+  }, [weekKey, isCurrentWeek, loading])
 
   return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', minHeight: '100vh' }}>
