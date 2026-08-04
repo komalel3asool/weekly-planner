@@ -1,0 +1,150 @@
+.trading-view {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.trading-header {
+  margin-bottom: 2rem;
+}
+
+.trading-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+}
+
+.trading-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 1rem;
+}
+
+.stat-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--primary);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  margin-top: 0.5rem;
+}
+
+.new-trade {
+  margin-bottom: 2rem;
+}
+
+.new-trade h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.trades-list {
+  margin-bottom: 2rem;
+}
+
+.trades-list h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+}
+
+.empty {
+  color: var(--text-secondary);
+  text-align: center;
+  padding: 2rem;
+}
+
+.trade-row {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.75rem;
+  border-left: 4px solid;
+}
+
+.trade-row.win {
+  border-left-color: var(--green);
+}
+
+.trade-row.loss {
+  border-left-color: var(--red);
+}
+
+.trade-info {
+  flex: 1;
+}
+
+.trade-ticker {
+  font-weight: 600;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.trade-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  gap: 1rem;
+}
+
+.trade-outcome {
+  font-weight: 600;
+  min-width: 80px;
+  text-align: right;
+}
+
+.trade-row.win .trade-outcome {
+  color: var(--green);
+}
+
+.trade-row.loss .trade-outcome {
+  color: var(--red);
+}
+
+.delete {
+  margin-left: 1rem;
+}
+
+@media (max-width: 768px) {
+  .trading-stats {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .trade-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .trade-outcome,
+  .delete {
+    width: 100%;
+    text-align: left;
+    margin-top: 0.75rem;
+  }
+}

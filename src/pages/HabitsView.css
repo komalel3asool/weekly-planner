@@ -1,0 +1,134 @@
+.habits-view {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.habits-header {
+  margin-bottom: 2rem;
+}
+
+.habits-header h1 {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0 0 1rem 0;
+}
+
+.new-habit-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.new-habit-form input,
+.new-habit-form select {
+  flex: 1;
+}
+
+.new-habit-form button {
+  min-width: 80px;
+}
+
+.habits-section {
+  margin-bottom: 2rem;
+}
+
+.habits-section h2 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 1rem 0;
+  color: var(--text-secondary);
+}
+
+.habits-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.habit-card {
+  background: var(--bg-secondary);
+  border: 2px solid var(--card-color);
+  border-radius: var(--radius);
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.habit-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.habit-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.habit-icon {
+  font-size: 1.75rem;
+  min-width: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.habit-details {
+  display: flex;
+  flex-direction: column;
+}
+
+.habit-name {
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.habit-meta {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.25rem;
+}
+
+.habit-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.icon-btn {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 36px;
+  height: 36px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.icon-btn:hover {
+  background: var(--primary);
+  color: white;
+  border-color: var(--primary);
+}
+
+.icon-btn.delete:hover {
+  background: var(--red);
+  border-color: var(--red);
+}
+
+@media (max-width: 768px) {
+  .habit-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .habit-actions {
+    width: 100%;
+    margin-top: 1rem;
+    justify-content: flex-end;
+  }
+}
