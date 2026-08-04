@@ -38,9 +38,7 @@ export function useWeeklyData(weekKey: string) {
     if (!userId) return
 
     const fetch = async () => {
-      setLoading(true)
-      console.log('📚 Fetching week:', weekKey)
-      
+      setLoading(true)      
       try {
         // 1. Try to fetch current week
         const { data: records } = await supabase
@@ -49,34 +47,20 @@ export function useWeeklyData(weekKey: string) {
           .eq('user_id', userId)
           .eq('week_key', weekKey)
 
-        if (records && records.length > 0) {
-          console.log('✅ Found current week')
-          setData(records[0].data)
+        if (records && records.length > 0) {          setData(records[0].data)
           setLoading(false)
           return
-        }
-
-        console.log('🔙 Week not found, trying previous')
-        
+        }        
         // 2. Current week doesn't exist, fetch previous week
-        const prevWeekKey = getPreviousWeekKey(weekKey)
-        console.log('📋 Previous week key:', prevWeekKey)
-        
+        const prevWeekKey = getPreviousWeekKey(weekKey)        
         const { data: prevRecords } = await supabase
           .from('weekly_plans')
           .select('*')
           .eq('user_id', userId)
           .eq('week_key', prevWeekKey)
-
-        console.log('🔍 Previous week records found:', prevRecords?.length)
-
         if (prevRecords && prevRecords.length > 0) {
-          const prevData = prevRecords[0].data
-          console.log('📊 Previous week habits count:', prevData?.weekly?.length)
-          
-          if (prevData?.weekly && prevData.weekly.length > 0) {
-            console.log('🎯 CARRYING OVER HABITS')
-            // Carry over habits
+          const prevData = prevRecords[0].data          
+          if (prevData?.weekly && prevData.weekly.length > 0) {            // Carry over habits
             const carriedWeekly = prevData.weekly.map((h: any) => ({
               ...h,
               count: 0
@@ -84,9 +68,7 @@ export function useWeeklyData(weekKey: string) {
             const carriedDaily = prevData.daily || []
             const carryoverData = { ...seed(), weekly: carriedWeekly, daily: carriedDaily, focus: prevData.focus || '' }
             
-            setData(carryoverData)
-            console.log('🎨 State updated with carryover:', carryoverData.weekly.length, 'habits')
-            
+            setData(carryoverData)            
             // Save this carryover data
             const { error } = await supabase.from('weekly_plans').insert({
               user_id: userId,
@@ -96,16 +78,10 @@ export function useWeeklyData(weekKey: string) {
             
             if (error) {
               console.error('❌ Error saving carryover:', error)
-            } else {
-              console.log('💾 Carryover saved successfully')
-            }
-          } else {
-            console.log('⚠️ Previous week has no habits')
-            setData(seed())
+            } else {            }
+          } else {            setData(seed())
           }
-        } else {
-          console.log('⚠️ No previous week found')
-          setData(seed())
+        } else {          setData(seed())
         }
       } catch (err) {
         console.error('💥 Error:', err)

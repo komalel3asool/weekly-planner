@@ -66,11 +66,7 @@ function Planner({ setView }: { setView: (v: any) => void }) {
   const { data, update } = useWeeklyData(weekKey)
   
   // Log what data we're rendering
-  useEffect(() => {
-    console.log('🖥️ Component rendering with', data.weekly?.length || 0, 'habits')
-  }, [data])
-  
-  // Calculate if this is the current week
+// Calculate if this is the current week
   const currentWeekKey = getWeekKey(today)
   const isCurrentWeek = weekKey === currentWeekKey
   
@@ -176,15 +172,12 @@ function ListSection({ section, day, data, update }: { section: any; day: Day; d
 
 function HabitsSection({ title, data, update, type }: { title: string; data: WeekData; update: (fn: (d: WeekData) => WeekData) => void; type: 'daily' | 'weekly' }) {
   const habits = type === 'daily' ? data.daily : data.weekly
-  console.log(`📌 HabitsSection [${type}]:`, habits?.length || 0, 'habits', habits)
 
   return (
     <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', background: 'white' }}>
       <h2 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', textTransform: 'uppercase', color: '#92400e' }}>{title}</h2>
       
-      {habits.map((habit, i) => {
-        console.log(`🎨 Rendering habit [${i}]:`, habit)
-        return (
+      {habits.map((habit, i) => (
         <div key={i} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #f3f4f6' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
             <input type="text" value={habit.name} onChange={(e) => { const arr = [...habits]; arr[i] = { ...arr[i], name: e.target.value }; update(d => type === 'daily' ? { ...d, daily: arr as any } : { ...d, weekly: arr as any }) }} style={{ flex: 1, padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontWeight: 'bold' }} />
@@ -198,8 +191,7 @@ function HabitsSection({ title, data, update, type }: { title: string; data: Wee
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
               {DAYS.map(day => (
                 <DailyCounter key={day} day={day} count={habit.counts[day]} target={habit.target} onChange={(v) => { const arr = [...habits]; (arr[i] as any).counts[day] = v; update(d => ({ ...d, daily: arr as any })) }} />
-              )
-      })}
+              ))}
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -218,6 +210,7 @@ function HabitsSection({ title, data, update, type }: { title: string; data: Wee
     </div>
   )
 }
+
 
 function DailyCounter({ day, count, target, onChange }: { day: Day; count: number; target: number; onChange: (v: number) => void }) {
   return (
