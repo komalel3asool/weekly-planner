@@ -176,6 +176,7 @@ function ListSection({ section, day, data, update }: { section: any; day: Day; d
 
 function HabitsSection({ title, data, update, type }: { title: string; data: WeekData; update: (fn: (d: WeekData) => WeekData) => void; type: 'daily' | 'weekly' }) {
   const habits = type === 'daily' ? data.daily : data.weekly
+  console.log(`📌 HabitsSection [${type}]:`, habits?.length || 0, 'habits', habits)
 
   return (
     <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', background: 'white' }}>
