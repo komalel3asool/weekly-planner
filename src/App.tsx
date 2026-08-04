@@ -86,7 +86,7 @@ function Planner({ setView }: { setView: (v: any) => void }) {
         <button onClick={() => setView('gym')} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>💪 Gym</button>
         <button onClick={() => setWeekOffset(weekOffset + 1)} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>← Prev</button>
           <button onClick={() => setWeekOffset(0)} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>This Week</button>
-          <button onClick={() => setWeekOffset(Math.max(0, weekOffset - 1))} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>Next →</button>
+          <button onClick={() => setWeekOffset(weekOffset - 1)} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>Next →</button>
           <button onClick={() => setShowImport(true)} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: '#fef3c7', cursor: 'pointer', fontWeight: '500', marginRight: '0.5rem' }}>📥 Import</button>
           <button onClick={async () => { await signOut(); location.reload() }} style={{ padding: '0.5rem 1rem', border: '1px solid #b45309', borderRadius: '4px', background: 'white', cursor: 'pointer' }}>Sign Out</button>
         </div>
