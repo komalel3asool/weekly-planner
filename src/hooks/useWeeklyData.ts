@@ -39,7 +39,7 @@ export function useWeeklyData(weekKey: string) {
 
     const fetch = async () => {
       try {
-        const { data: record } = await supabase
+        const { data: record, error } = await supabase
           .from('weekly_plans')
           .select('data')
           .eq('user_id', userId)
@@ -48,8 +48,8 @@ export function useWeeklyData(weekKey: string) {
 
         if (record?.data) {
           setData(record.data)
-        } else {
-          // New week - try to carry over from previous week
+        } else if (error?.code === 'PGRST116') {
+          // No data found for this week - carry over from previous week
           const prevWeekKey = getPreviousWeekKey(weekKey)
           const { data: prevRecord } = await supabase
             .from('weekly_plans')
@@ -66,12 +66,23 @@ export function useWeeklyData(weekKey: string) {
             }))
             // Carry over daily habits structure
             const carriedDaily = prevRecord.data.daily || []
-            setData({ ...seed(), weekly: carriedWeekly, daily: carriedDaily })
+            const carryoverData = { ...seed(), weekly: carriedWeekly, daily: carriedDaily }
+            setData(carryoverData)
+            
+            // Persist the carryover data
+            await supabase.from('weekly_plans').insert({
+              user_id: userId,
+              week_key: weekKey,
+              data: carryoverData
+            })
           } else {
             setData(seed())
           }
+        } else {
+          setData(seed())
         }
       } catch (err) {
+        console.error('Error fetching week data:', err)
         setData(seed())
       } finally {
         setLoading(false)
@@ -91,7 +102,9 @@ export function useWeeklyData(weekKey: string) {
           filter: `user_id=eq.${userId}`
         },
         (payload) => {
-          if (payload.new) setData(payload.new.data)
+          if (payload.new && payload.new.week_key === weekKey) {
+            setData(payload.new.data)
+          }
         }
       )
       .subscribe()
@@ -112,7 +125,7 @@ export function useWeeklyData(weekKey: string) {
           { onConflict: 'user_id,week_key' }
         )
       } catch (err) {
-        console.error(err)
+        console.error('Error updating:', err)
       }
     },
     [data, userId, weekKey]
