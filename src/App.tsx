@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAppData } from './hooks/useAppData'
 import { getWeekKey } from './utils/weekUtils'
+import { supabase } from './lib/supabase'
+import Auth from './components/Auth'
 import WeeklyView from './pages/WeeklyView'
 import TradingView from './pages/TradingView'
 import PdfView from './pages/PdfView'
@@ -10,9 +12,39 @@ import './App.css'
 type View = 'weekly' | 'trading' | 'pdf' | 'habits'
 
 export default function App() {
-  const { data, update } = useAppData()
+  const { data, loading, update, userId } = useAppData()
   const [view, setView] = useState<View>('weekly')
   const [weekOffset, setWeekOffset] = useState(0)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [showMenu, setShowMenu] = useState(false)
+
+  // Check auth state
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      setIsAuthenticated(!!session)
+    }
+
+    checkAuth()
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      setIsAuthenticated(!!session)
+    })
+
+    return () => subscription?.unsubscribe()
+  }, [])
+
+  if (!isAuthenticated) {
+    return <Auth onSuccess={() => window.location.reload()} />
+  }
+
+  if (loading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
+        <p>Loading your data...</p>
+      </div>
+    )
+  }
 
   const today = new Date()
   const baseDate = new Date(today)
@@ -27,6 +59,11 @@ export default function App() {
       habits: '⚡'
     }
     return icons[v]
+  }
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
+    setIsAuthenticated(false)
   }
 
   return (
@@ -44,7 +81,15 @@ export default function App() {
               {getIcon(v)}
             </button>
           ))}
+          <button className="nav-btn" onClick={() => setShowMenu(!showMenu)} title="menu">
+            ⋮
+          </button>
         </div>
+        {showMenu && (
+          <div className="menu-dropdown">
+            <button onClick={handleLogout} className="menu-item">Sign Out</button>
+          </div>
+        )}
       </div>
 
       <main className="main-content">
