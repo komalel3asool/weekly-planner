@@ -85,6 +85,7 @@ export function useWeeklyData(weekKey: string) {
             const carryoverData = { ...seed(), weekly: carriedWeekly, daily: carriedDaily, focus: prevData.focus || '' }
             
             setData(carryoverData)
+            console.log('🎨 State updated with carryover:', carryoverData.weekly.length, 'habits')
             
             // Save this carryover data
             const { error } = await supabase.from('weekly_plans').insert({

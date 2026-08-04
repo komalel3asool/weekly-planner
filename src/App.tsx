@@ -65,6 +65,11 @@ function Planner({ setView }: { setView: (v: any) => void }) {
   const weekKey = getWeekKey(baseDate)
   const { data, update } = useWeeklyData(weekKey)
   
+  // Log what data we're rendering
+  useEffect(() => {
+    console.log('🖥️ Component rendering with', data.weekly?.length || 0, 'habits')
+  }, [data])
+  
   // Calculate if this is the current week
   const currentWeekKey = getWeekKey(today)
   const isCurrentWeek = weekKey === currentWeekKey
