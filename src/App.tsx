@@ -182,7 +182,9 @@ function HabitsSection({ title, data, update, type }: { title: string; data: Wee
     <div style={{ padding: '1.5rem', border: '1px solid #ddd', borderRadius: '8px', background: 'white' }}>
       <h2 style={{ fontSize: '1rem', fontWeight: 'bold', marginBottom: '1rem', textTransform: 'uppercase', color: '#92400e' }}>{title}</h2>
       
-      {habits.map((habit, i) => (
+      {habits.map((habit, i) => {
+        console.log(`🎨 Rendering habit [${i}]:`, habit)
+        return (
         <div key={i} style={{ marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #f3f4f6' }}>
           <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '0.5rem', alignItems: 'center' }}>
             <input type="text" value={habit.name} onChange={(e) => { const arr = [...habits]; arr[i] = { ...arr[i], name: e.target.value }; update(d => type === 'daily' ? { ...d, daily: arr as any } : { ...d, weekly: arr as any }) }} style={{ flex: 1, padding: '0.5rem', border: '1px solid #ddd', borderRadius: '4px', fontWeight: 'bold' }} />
@@ -196,7 +198,8 @@ function HabitsSection({ title, data, update, type }: { title: string; data: Wee
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '0.5rem' }}>
               {DAYS.map(day => (
                 <DailyCounter key={day} day={day} count={habit.counts[day]} target={habit.target} onChange={(v) => { const arr = [...habits]; (arr[i] as any).counts[day] = v; update(d => ({ ...d, daily: arr as any })) }} />
-              ))}
+              )
+      })}
             </div>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
