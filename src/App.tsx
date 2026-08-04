@@ -84,35 +84,7 @@ function Planner({ setView }: { setView: (v: any) => void }) {
     return <ImportData onSuccess={() => setShowImport(false)} />
   }
 
-  // Carryover habits from previous week when loading new week
-  useEffect(() => {
-    if (loading || !isCurrentWeek) return
-    
-    const carryover = async () => {
-      const prevDate = new Date(baseDate)
-      prevDate.setDate(prevDate.getDate() - 7)
-      const prevWeekKey = getWeekKey(prevDate)
-      
-      const { data: prevRecords } = await supabase
-        .from('weekly_plans')
-        .select('data')
-        .eq('user_id', (supabase.auth.user() as any)?.id)
-        .eq('week_key', prevWeekKey)
-      
-      if (prevRecords?.[0]?.data?.weekly && prevRecords[0].data.weekly.length > 0) {
-        const carriedWeekly = prevRecords[0].data.weekly.map((h: any) => ({
-          ...h,
-          count: 0
-        }))
-        const carriedDaily = prevRecords[0].data.daily || []
-        update(d => ({ ...d, weekly: carriedWeekly, daily: carriedDaily }))
-      }
-    }
-    
-    carryover()
-  }, [weekKey, isCurrentWeek, loading])
-
-  return (
+return (
     <div style={{ padding: '2rem', maxWidth: '1400px', margin: '0 auto', background: 'linear-gradient(135deg, #fef3c7 0%, #fde68a 100%)', minHeight: '100vh' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <h1 style={{ fontSize: '3rem', fontWeight: 'bold', color: '#78350f' }}>Weekly</h1>
