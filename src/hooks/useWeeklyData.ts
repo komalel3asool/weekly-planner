@@ -39,47 +39,46 @@ export function useWeeklyData(weekKey: string) {
 
     const fetch = async () => {
       try {
-        const { data: record, error } = await supabase
+        // Try to fetch current week
+        const { data: records } = await supabase
           .from('weekly_plans')
           .select('data')
           .eq('user_id', userId)
           .eq('week_key', weekKey)
-          .single()
 
-        if (record?.data) {
-          setData(record.data)
-        } else if (error?.code === 'PGRST116') {
-          // No data found for this week - carry over from previous week
+        if (records && records.length > 0) {
+          // Found current week
+          setData(records[0].data)
+        } else {
+          // No current week - try to carry over from previous week
           const prevWeekKey = getPreviousWeekKey(weekKey)
-          const { data: prevRecord } = await supabase
+          const { data: prevRecords } = await supabase
             .from('weekly_plans')
             .select('data')
             .eq('user_id', userId)
             .eq('week_key', prevWeekKey)
-            .single()
 
-          if (prevRecord?.data?.weekly && prevRecord.data.weekly.length > 0) {
+          if (prevRecords && prevRecords.length > 0 && prevRecords[0].data?.weekly && prevRecords[0].data.weekly.length > 0) {
             // Carry over weekly habits with count reset
-            const carriedWeekly = prevRecord.data.weekly.map((h: any) => ({
+            const carriedWeekly = prevRecords[0].data.weekly.map((h: any) => ({
               ...h,
               count: 0
             }))
-            // Carry over daily habits structure
-            const carriedDaily = prevRecord.data.daily || []
+            // Carry over daily habits
+            const carriedDaily = prevRecords[0].data.daily || []
             const carryoverData = { ...seed(), weekly: carriedWeekly, daily: carriedDaily }
             setData(carryoverData)
             
-            // Persist the carryover data
+            // Save carryover data for this week
             await supabase.from('weekly_plans').insert({
               user_id: userId,
               week_key: weekKey,
               data: carryoverData
             })
           } else {
+            // No previous week data either
             setData(seed())
           }
-        } else {
-          setData(seed())
         }
       } catch (err) {
         console.error('Error fetching week data:', err)
