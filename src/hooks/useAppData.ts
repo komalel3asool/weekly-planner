@@ -230,6 +230,20 @@ export function useAppData() {
           )
         }
 
+        // Delete habits that no longer exist locally
+        const localIds = new Set(newData.habits.map(h => h.id))
+        const deletedIds = data.habits
+          .filter(h => !localIds.has(h.id))
+          .map(h => h.id)
+        
+        if (deletedIds.length > 0) {
+          console.log('🗑️ Deleting habits:', deletedIds)
+          await supabase
+            .from('habits')
+            .delete()
+            .in('id', deletedIds)
+        }
+
         await Promise.all(
           Object.values(newData.weeks).map(w =>
             supabase.from('week_data').upsert({
