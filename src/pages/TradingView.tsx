@@ -1,4 +1,4 @@
-import { AppData, Trade, Strategy } from '../types'
+import { AppData, Trade, Strategy, Ticker } from '../types'
 import { generateId } from '../utils/id'
 import './TradingView.css'
 import React, { useState } from 'react'
@@ -11,6 +11,7 @@ interface Props {
 export default function TradingView({ data, update }: Props) {
   const trades = data.trades
   const strategies = data.strategies
+  const tickers = data.tickers
 
   const addStrategy = () => {
     const name = prompt('Strategy name:')
@@ -32,6 +33,29 @@ export default function TradingView({ data, update }: Props) {
     update(d => ({
       ...d,
       strategies: d.strategies.filter(s => s.id !== id)
+    }))
+  }
+
+  const addTicker = () => {
+    const symbol = prompt('Ticker symbol (e.g., AAPL):')
+    if (!symbol) return
+    const notes = prompt('Notes (optional):', '')
+
+    update(d => ({
+      ...d,
+      tickers: [...d.tickers, {
+        id: generateId(),
+        symbol: symbol.toUpperCase(),
+        notes: notes || undefined
+      }]
+    }))
+  }
+
+  const deleteTicker = (id: string) => {
+    if (!confirm('Delete this ticker?')) return
+    update(d => ({
+      ...d,
+      tickers: d.tickers.filter(t => t.id !== id)
     }))
   }
 
@@ -67,6 +91,18 @@ export default function TradingView({ data, update }: Props) {
     }))
   }
 
+  // Calculate stats per ticker
+  const getTickerStats = (tickerSymbol: string) => {
+    const tickerTrades = trades.filter(t => t.ticker === tickerSymbol)
+    if (tickerTrades.length === 0) return null
+    const wins = tickerTrades.filter(t => t.outcome === 'win')
+    const losses = tickerTrades.filter(t => t.outcome === 'loss')
+    const winRate = Math.round((wins.length / tickerTrades.length) * 100)
+    const avgWinner = wins.length > 0 ? (wins.reduce((sum, t) => sum + t.r, 0) / wins.length).toFixed(2) : 0
+    const avgLoser = losses.length > 0 ? (Math.abs(losses.reduce((sum, t) => sum + t.r, 0) / losses.length)).toFixed(2) : 0
+    return { total: tickerTrades.length, wins: wins.length, winRate, avgWinner, avgLoser }
+  }
+
   const wins = trades.filter(t => t.outcome === 'win')
   const losses = trades.filter(t => t.outcome === 'loss')
   const totalWinRate = trades.length > 0 ? Math.round((wins.length / trades.length) * 100) : 0
@@ -87,9 +123,12 @@ export default function TradingView({ data, update }: Props) {
         </div>
       </div>
 
-      <StrategyManager strategies={strategies} onAdd={addStrategy} onDelete={deleteStrategy} />
+      <div className="managers-row">
+        <StrategyManager strategies={strategies} onAdd={addStrategy} onDelete={deleteStrategy} />
+        <TickerManager tickers={tickers} onAdd={addTicker} onDelete={deleteTicker} getStats={getTickerStats} />
+      </div>
 
-      <NewTradeForm onAdd={addTrade} strategies={strategies} />
+      <NewTradeForm onAdd={addTrade} strategies={strategies} tickers={tickers} />
 
       <div className="trades-list">
         <h2>Recent Trades</h2>
@@ -103,6 +142,7 @@ export default function TradingView({ data, update }: Props) {
               onUpdate={(updated) => updateTrade(trade.id, updated)}
               onDelete={() => deleteTrade(trade.id)} 
               strategies={strategies}
+              tickers={tickers}
             />
           ))
         )}
@@ -122,20 +162,20 @@ function StatCard({ label, value, color }: { label: string; value: any; color?: 
 
 function StrategyManager({ strategies, onAdd, onDelete }: { strategies: Strategy[]; onAdd: () => void; onDelete: (id: string) => void }) {
   return (
-    <div className="card strategies-section">
-      <div className="strategies-header">
+    <div className="card manager-card strategies-section">
+      <div className="manager-header">
         <h2>Strategies</h2>
         <button className="button small primary" onClick={onAdd}>+ Add</button>
       </div>
-      <div className="strategies-list">
+      <div className="manager-list">
         {strategies.length === 0 ? (
-          <p className="empty">No strategies yet</p>
+          <p className="empty">No strategies</p>
         ) : (
           strategies.map(s => (
-            <div key={s.id} className="strategy-item">
+            <div key={s.id} className="manager-item">
               <div>
-                <div className="strategy-name">{s.name}</div>
-                {s.notes && <div className="strategy-notes">{s.notes}</div>}
+                <div className="manager-name">{s.name}</div>
+                {s.notes && <div className="manager-notes">{s.notes}</div>}
               </div>
               <button className="icon-btn delete" onClick={() => onDelete(s.id)}>✕</button>
             </div>
@@ -146,7 +186,41 @@ function StrategyManager({ strategies, onAdd, onDelete }: { strategies: Strategy
   )
 }
 
-function NewTradeForm({ onAdd, strategies }: { onAdd: (t: Partial<Trade>) => void; strategies: Strategy[] }) {
+function TickerManager({ tickers, onAdd, onDelete, getStats }: { tickers: Ticker[]; onAdd: () => void; onDelete: (id: string) => void; getStats: (symbol: string) => any }) {
+  return (
+    <div className="card manager-card tickers-section">
+      <div className="manager-header">
+        <h2>Tickers</h2>
+        <button className="button small primary" onClick={onAdd}>+ Add</button>
+      </div>
+      <div className="manager-list">
+        {tickers.length === 0 ? (
+          <p className="empty">No tickers</p>
+        ) : (
+          tickers.map(t => {
+            const stats = getStats(t.symbol)
+            return (
+              <div key={t.id} className="manager-item ticker-item">
+                <div>
+                  <div className="manager-name">{t.symbol}</div>
+                  {stats && (
+                    <div className="ticker-stats">
+                      {stats.total} trades • {stats.winRate}% win • Avg: +{stats.avgWinner}% / -{stats.avgLoser}%
+                    </div>
+                  )}
+                  {t.notes && <div className="manager-notes">{t.notes}</div>}
+                </div>
+                <button className="icon-btn delete" onClick={() => onDelete(t.id)}>✕</button>
+              </div>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
+function NewTradeForm({ onAdd, strategies, tickers }: { onAdd: (t: Partial<Trade>) => void; strategies: Strategy[]; tickers: Ticker[] }) {
   const [form, setForm] = useState({
     ticker: '',
     strategy: '',
@@ -166,7 +240,12 @@ function NewTradeForm({ onAdd, strategies }: { onAdd: (t: Partial<Trade>) => voi
     <div className="card new-trade">
       <h2>Log Trade</h2>
       <div className="form-grid">
-        <input className="input" placeholder="Ticker" value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} />
+        <select className="input" value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })}>
+          <option value="">Select ticker...</option>
+          {tickers.map(t => (
+            <option key={t.id} value={t.symbol}>{t.symbol}</option>
+          ))}
+        </select>
         <select className="input" value={form.strategy} onChange={(e) => setForm({ ...form, strategy: e.target.value })}>
           <option value="">Select strategy...</option>
           {strategies.map(s => (
@@ -189,7 +268,7 @@ function NewTradeForm({ onAdd, strategies }: { onAdd: (t: Partial<Trade>) => voi
   )
 }
 
-function TradeRow({ trade, onUpdate, onDelete, strategies }: { trade: Trade; onUpdate: (t: Partial<Trade>) => void; onDelete: () => void; strategies: Strategy[] }) {
+function TradeRow({ trade, onUpdate, onDelete, strategies, tickers }: { trade: Trade; onUpdate: (t: Partial<Trade>) => void; onDelete: () => void; strategies: Strategy[]; tickers: Ticker[] }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(trade)
 
@@ -202,12 +281,16 @@ function TradeRow({ trade, onUpdate, onDelete, strategies }: { trade: Trade; onU
     return (
       <div className={`trade-row ${trade.outcome} editing`}>
         <div className="edit-form">
-          <input 
+          <select 
             className="edit-input" 
             value={form.ticker} 
             onChange={(e) => setForm({ ...form, ticker: e.target.value })}
-            placeholder="Ticker"
-          />
+          >
+            <option value="">Select ticker...</option>
+            {tickers.map(t => (
+              <option key={t.id} value={t.symbol}>{t.symbol}</option>
+            ))}
+          </select>
           <select 
             className="edit-input" 
             value={form.strategy} 

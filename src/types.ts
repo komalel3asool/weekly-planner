@@ -38,6 +38,12 @@ export interface Strategy {
   notes?: string
 }
 
+export interface Ticker {
+  id: string
+  symbol: string
+  notes?: string
+}
+
 export interface Trade {
   id: string
   date: string
@@ -58,6 +64,7 @@ export interface PdfReader {
 export interface AppData {
   habits: Habit[]
   strategies: Strategy[]
+  tickers: Ticker[]
   weeks: Record<string, WeekData>
   trades: Trade[]
   pdfReader: PdfReader

@@ -28,6 +28,7 @@ export function useAppData() {
         const appData: AppData = {
           habits: [],
           strategies: [],
+          tickers: [],
           weeks: {},
           trades: [],
           pdfReader: { url: '', currentPage: 1, notes: '' },
@@ -57,6 +58,19 @@ export function useAppData() {
           console.log('✅ Loaded', appData.strategies.length, 'strategies')
         } catch (err) {
           console.error('Error loading strategies:', err)
+        }
+
+        try {
+          const { data: tickersData, error: tickersErr } = await supabase
+            .from('tickers')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('symbol')
+          if (tickersErr) throw tickersErr
+          appData.tickers = tickersData || []
+          console.log('✅ Loaded', appData.tickers.length, 'tickers')
+        } catch (err) {
+          console.error('Error loading tickers:', err)
         }
 
         try {
@@ -159,6 +173,22 @@ export function useAppData() {
         })
         .subscribe()
       channels.push(strategiesChannel)
+
+      const tickersChannel = supabase
+        .channel(`tickers-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'tickers', filter: `user_id=eq.${userId}` }, () => {
+          console.log('🔄 Tickers changed in Supabase, fetching...')
+          supabase.from('tickers').select('*').eq('user_id', userId).order('symbol').then(({ data, error }) => {
+            if (error) {
+              console.error('❌ Error fetching tickers:', error)
+              return
+            }
+            console.log('✅ Fetched', data?.length || 0, 'tickers from realtime')
+            setData(d => ({ ...d, tickers: data || [] }))
+          })
+        })
+        .subscribe()
+      channels.push(tickersChannel)
 
       const weekChannel = supabase
         .channel(`week_data-${userId}`)
@@ -309,6 +339,32 @@ export function useAppData() {
             .from('strategies')
             .delete()
             .in('id', deletedStrategyIds)
+        }
+
+        if (newData.tickers.length > 0) {
+          console.log('📝 Syncing', newData.tickers.length, 'tickers to Supabase')
+          await supabase.from('tickers').upsert(
+            newData.tickers.map(t => ({
+              id: t.id,
+              user_id: userId,
+              symbol: t.symbol,
+              notes: t.notes || null
+            }))
+          )
+        }
+
+        // Delete tickers that no longer exist locally
+        const localTickerIds = new Set(newData.tickers.map(t => t.id))
+        const deletedTickerIds = data.tickers
+          .filter(t => !localTickerIds.has(t.id))
+          .map(t => t.id)
+        
+        if (deletedTickerIds.length > 0) {
+          console.log('🗑️ Deleting tickers:', deletedTickerIds)
+          await supabase
+            .from('tickers')
+            .delete()
+            .in('id', deletedTickerIds)
         }
 
         await Promise.all(
