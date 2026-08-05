@@ -30,6 +30,12 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
     }
   }
 
+  const normalizeTodos = (todos: any[]): TodoItem[] => {
+    return todos.map(t => 
+      typeof t === 'string' ? { text: t, completed: false } : t
+    )
+  }
+
   const removeItem = (key: keyof DayData, index: number) => {
     const list = dayData[key] as any[]
     updateList(key, list.filter((_, i) => i !== index))
@@ -41,7 +47,7 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
   }
 
   const toggleTodo = (index: number) => {
-    const todos = dayData.todos as TodoItem[]
+    const todos = normalizeTodos(dayData.todos as any[])
     const updated = todos.map((t, i) => 
       i === index ? { ...t, completed: !t.completed } : t
     )
@@ -77,7 +83,7 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
       text += '\n'
     }
 
-    const incompleteTodos = (dayData.todos as TodoItem[]).filter(t => !t.completed)
+    const incompleteTodos = normalizeTodos(dayData.todos as any[]).filter(t => !t.completed)
     if (incompleteTodos.length > 0) {
       text += `☐ TODOS (INCOMPLETE)\n`
       incompleteTodos.forEach(item => {
@@ -105,7 +111,7 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
 
       <Section title="✓ Done" items={dayData.done} onRemove={(i) => removeItem('done', i)} onAdd={(v) => addItem('done', v)} />
       
-      <TodoSection items={dayData.todos as TodoItem[]} onRemove={(i) => removeItem('todos', i)} onAdd={(v) => addItem('todos', v)} onToggle={(i) => toggleTodo(i)} />
+      <TodoSection items={normalizeTodos(dayData.todos as any[])} onRemove={(i) => removeItem('todos', i)} onAdd={(v) => addItem('todos', v)} onToggle={(i) => toggleTodo(i)} />
       
       <Section title="📞 Meetings" items={dayData.meetings} onRemove={(i) => removeItem('meetings', i)} onAdd={(v) => addItem('meetings', v)} />
       
