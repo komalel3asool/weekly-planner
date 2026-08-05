@@ -1,5 +1,6 @@
 import { AppData, DBTEntry } from '../types'
 import { generateId } from '../utils/id'
+import { supabase } from '../lib/supabase'
 import './DBTView.css'
 import React, { useState } from 'react'
 
@@ -12,6 +13,7 @@ export default function DBTView({ data, update }: Props) {
   const entries = data.dbtEntries
   const today = new Date().toISOString().split('T')[0]
   const todayEntry = entries.find(e => e.date === today)
+  const [uploading, setUploading] = useState(false)
 
   const addOrUpdateEntry = (entry: Partial<DBTEntry>) => {
     if (todayEntry) {
@@ -42,6 +44,38 @@ export default function DBTView({ data, update }: Props) {
         ...d,
         dbtEntries: [newEntry, ...d.dbtEntries]
       }))
+    }
+  }
+
+  const handleFileUpload = async (file: File) => {
+    if (!todayEntry) {
+      alert('Create today\'s entry first by setting your mood')
+      return
+    }
+
+    setUploading(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${todayEntry.id}.${fileExt}`
+      const filePath = `dbt-worksheets/${fileName}`
+
+      const { error: uploadError } = await supabase.storage
+        .from('dbt-worksheets')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('dbt-worksheets')
+        .getPublicUrl(filePath)
+
+      addOrUpdateEntry({ worksheetUrl: publicUrl })
+      console.log('✅ Worksheet uploaded')
+    } catch (err) {
+      console.error('Error uploading worksheet:', err)
+      alert('Failed to upload worksheet. Check console.')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -90,7 +124,13 @@ export default function DBTView({ data, update }: Props) {
       </div>
 
       {todayEntry ? (
-        <TodayEntry entry={todayEntry} onUpdate={addOrUpdateEntry} getMoodColor={getMoodColor} />
+        <TodayEntry 
+          entry={todayEntry} 
+          onUpdate={addOrUpdateEntry} 
+          getMoodColor={getMoodColor}
+          onFileUpload={handleFileUpload}
+          uploading={uploading}
+        />
       ) : (
         <StartEntry onStart={addOrUpdateEntry} />
       )}
@@ -118,7 +158,7 @@ function StartEntry({ onStart }: { onStart: (entry: Partial<DBTEntry>) => void }
   return (
     <div className="card start-entry">
       <div className="start-content">
-        <h2>Today's Check-In</h2>
+        <h2>Today\'s Check-In</h2>
         <p>How are you feeling right now?</p>
         <div className="mood-buttons">
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(mood => (
@@ -138,10 +178,18 @@ function StartEntry({ onStart }: { onStart: (entry: Partial<DBTEntry>) => void }
   )
 }
 
-function TodayEntry({ entry, onUpdate, getMoodColor }: { entry: DBTEntry; onUpdate: (e: Partial<DBTEntry>) => void; getMoodColor: (m: number) => string }) {
+function TodayEntry({ entry, onUpdate, getMoodColor, onFileUpload, uploading }: { 
+  entry: DBTEntry
+  onUpdate: (e: Partial<DBTEntry>) => void
+  getMoodColor: (m: number) => string
+  onFileUpload: (file: File) => void
+  uploading: boolean
+}) {
+  const fileInputRef = React.useRef<HTMLInputElement>(null)
+
   return (
     <div className="card today-entry">
-      <h2>Today's Entry</h2>
+      <h2>Today\'s Entry</h2>
       
       <div className="mood-section">
         <label>How are you feeling?</label>
@@ -199,8 +247,33 @@ function TodayEntry({ entry, onUpdate, getMoodColor }: { entry: DBTEntry; onUpda
         />
       </div>
 
+      <div className="worksheet-section">
+        <label>📄 DBT Worksheet:</label>
+        <div className="worksheet-upload">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
+            onChange={(e) => e.target.files?.[0] && onFileUpload(e.target.files[0])}
+            style={{ display: 'none' }}
+          />
+          <button 
+            className="upload-btn"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploading}
+          >
+            {uploading ? '⏳ Uploading...' : '+ Upload Worksheet'}
+          </button>
+          {entry.worksheetUrl && (
+            <a href={entry.worksheetUrl} target="_blank" rel="noopener noreferrer" className="worksheet-link">
+              📎 View Worksheet
+            </a>
+          )}
+        </div>
+      </div>
+
       <div className="encouragement">
-        ✨ You're showing up for yourself. That takes strength.
+        ✨ You\'re showing up for yourself. That takes strength.
       </div>
     </div>
   )
@@ -221,6 +294,11 @@ function EntryCard({ entry, getMoodColor, onDelete }: { entry: DBTEntry; getMood
         </div>
         <div className="entry-skills">
           <span className="skills-badge">{skillsUsed} skills</span>
+          {entry.worksheetUrl && (
+            <a href={entry.worksheetUrl} target="_blank" rel="noopener noreferrer" className="worksheet-icon" title="View worksheet">
+              📎
+            </a>
+          )}
           <button className="icon-btn delete" onClick={onDelete}>✕</button>
         </div>
       </div>

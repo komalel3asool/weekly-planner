@@ -9,6 +9,14 @@ const DAY_COLORS: Record<string, string> = {
   Friday: '#f59e0b'
 }
 
+export function getLocalDateString(date = new Date()): string {
+  const d = new Date(date)
+  const year = d.getFullYear()
+  const month = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 export function getWeekKey(date = new Date()): string {
   const d = new Date(date)
   const dayNum = (d.getDay() + 6) % 7
@@ -34,7 +42,7 @@ export function getWeekDates(weekKey: string): { date: string; day: string }[] {
     date.setDate(mondayOfTargetWeek.getDate() + i)
     return {
       day,
-      date: date.toISOString().split('T')[0]
+      date: getLocalDateString(date)
     }
   })
 }

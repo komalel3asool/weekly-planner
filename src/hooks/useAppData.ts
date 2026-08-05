@@ -155,6 +155,7 @@ export function useAppData() {
             mood: entry.mood,
             skills: entry.skills,
             notes: entry.notes || '',
+            worksheetUrl: entry.worksheet_url,
             createdAt: entry.created_at
           })) || []
           console.log('✅ Loaded', appData.dbtEntries.length, 'DBT entries')
@@ -330,6 +331,7 @@ export function useAppData() {
                 mood: entry.mood,
                 skills: entry.skills,
                 notes: entry.notes || '',
+                worksheetUrl: entry.worksheet_url,
                 createdAt: entry.created_at
               }))
             }))
@@ -538,6 +540,7 @@ export function useAppData() {
               mood: entry.mood,
               skills: entry.skills,
               notes: entry.notes || '',
+              worksheet_url: entry.worksheetUrl || null,
               created_at: entry.createdAt
             }))
           )

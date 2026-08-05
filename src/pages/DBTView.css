@@ -403,3 +403,75 @@
     font-size: 0.8rem;
   }
 }
+
+/* Worksheet Section */
+.worksheet-section {
+  margin-bottom: 1.5rem;
+}
+
+.worksheet-section label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+}
+
+.worksheet-upload {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.upload-btn {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.upload-btn:hover:not(:disabled) {
+  background: var(--blue);
+  transform: scale(1.05);
+}
+
+.upload-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.worksheet-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--primary);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.worksheet-link:hover {
+  background: var(--bg-secondary);
+  border-color: var(--primary);
+}
+
+.worksheet-icon {
+  display: inline-block;
+  margin-left: 0.5rem;
+  font-size: 1rem;
+  text-decoration: none;
+}

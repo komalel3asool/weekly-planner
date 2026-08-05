@@ -84,6 +84,7 @@ export interface DBTEntry {
     interpersonalEffectiveness: boolean
   }
   notes: string
+  worksheetUrl?: string
   createdAt: string
 }
 
