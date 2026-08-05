@@ -64,9 +64,15 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
             <div key={habit.id} className="habit-tracker" style={{ '--color': `var(--${habit.color})` } as any}>
               <span className="habit-name">{habit.icon} {habit.name}</span>
               <div className="habit-count">
-                <button onClick={() => updateHabitLog(habit.id, Math.max(0, (dayData.habitLog[habit.id]?.count || 0) - 1))}>−</button>
-                <span>{dayData.habitLog[habit.id]?.count || 0}</span>
-                <button onClick={() => updateHabitLog(habit.id, (dayData.habitLog[habit.id]?.count || 0) + 1)}>+</button>
+                <button onClick={() => {
+                  const current = dayData.habitLog[habit.id]?.count || 0
+                  updateHabitLog(habit.id, Math.max(0, current - 1))
+                }}>−</button>
+                <span>{dayData.habitLog[habit.id]?.count || 0}{habit.target ? ` / ${habit.target}` : ''}</span>
+                <button onClick={() => {
+                  const current = dayData.habitLog[habit.id]?.count || 0
+                  updateHabitLog(habit.id, current + 1)
+                }}>+</button>
               </div>
             </div>
           ))}
