@@ -148,3 +148,98 @@
     margin-top: 0.75rem;
   }
 }
+
+/* Edit mode */
+.trade-row.editing {
+  background: var(--bg);
+  padding: 1.5rem;
+  border-color: var(--blue);
+}
+
+.edit-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.edit-input {
+  padding: 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg-secondary);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: var(--blue);
+  box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.1);
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.button.small {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.8rem;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.button.small.primary {
+  background: #34c759;
+  color: white;
+}
+
+.button.small.primary:hover {
+  background: #2ba649;
+  transform: scale(1.05);
+}
+
+.button.small.secondary {
+  background: var(--border);
+  color: var(--text);
+}
+
+.button.small.secondary:hover {
+  background: var(--bg-secondary);
+  transform: scale(1.05);
+}
+
+/* Edit button */
+.icon-btn.edit {
+  color: var(--blue);
+  background: rgba(10, 132, 255, 0.1);
+}
+
+.icon-btn.edit:hover {
+  background: rgba(10, 132, 255, 0.2);
+}
+
+/* Percent display */
+.trade-percent {
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.trade-row.win .trade-percent {
+  color: #34c759;
+}
+
+.trade-row.loss .trade-percent {
+  color: #ff3b30;
+}
+
+.trade-note {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 0.35rem;
+  font-style: italic;
+}
