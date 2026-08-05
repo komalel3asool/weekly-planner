@@ -75,9 +75,9 @@ export function useAppData() {
             .eq('user_id', user.id)
           if (tradesErr) throw tradesErr
           appData.trades = tradesData || []
-          console.log('✅ Loaded', appData.trades.length, 'trades')
+          console.log('✅ Loaded', appData.trades.length, 'trades:', appData.trades)
         } catch (err) {
-          console.error('Error loading trades:', err)
+          console.error('❌ Error loading trades:', err)
         }
 
         try {
@@ -161,11 +161,20 @@ export function useAppData() {
 
       const tradesChannel = supabase
         .channel(`trades-${userId}`)
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'trades', filter: `user_id=eq.${userId}` }, () => {
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'trades', filter: `user_id=eq.${userId}` }, (payload) => {
           // Don't update if we just updated locally (race condition protection)
-          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) return
+          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) {
+            console.log('⏭️ Skipping trades realtime (too soon after local update)')
+            return
+          }
           
-          supabase.from('trades').select('*').eq('user_id', userId).then(({ data }) => {
+          console.log('🔄 Trades changed in Supabase, fetching...')
+          supabase.from('trades').select('*').eq('user_id', userId).then(({ data, error }) => {
+            if (error) {
+              console.error('❌ Error fetching trades:', error)
+              return
+            }
+            console.log('✅ Fetched', data?.length || 0, 'trades from realtime')
             setData(d => ({ ...d, trades: data || [] }))
           })
         })
@@ -260,8 +269,8 @@ export function useAppData() {
         )
 
         if (newData.trades.length > 0) {
-          console.log('📝 Syncing', newData.trades.length, 'trades to Supabase')
-          await supabase.from('trades').upsert(
+          console.log('📝 Syncing', newData.trades.length, 'trades to Supabase:', newData.trades)
+          const { error: tradesError } = await supabase.from('trades').upsert(
             newData.trades.map(t => ({
               id: t.id,
               user_id: userId,
@@ -275,7 +284,11 @@ export function useAppData() {
               created_at: new Date().toISOString()
             }))
           )
-          console.log('✅ Trades synced')
+          if (tradesError) {
+            console.error('❌ Error syncing trades:', tradesError)
+          } else {
+            console.log('✅ Trades synced')
+          }
         }
 
         await supabase.from('pdf_reader').upsert({
