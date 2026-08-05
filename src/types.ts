@@ -32,6 +32,12 @@ export interface WeekData {
   days: Record<string, DayData>
 }
 
+export interface Strategy {
+  id: string
+  name: string
+  notes?: string
+}
+
 export interface Trade {
   id: string
   date: string
@@ -51,6 +57,7 @@ export interface PdfReader {
 
 export interface AppData {
   habits: Habit[]
+  strategies: Strategy[]
   weeks: Record<string, WeekData>
   trades: Trade[]
   pdfReader: PdfReader

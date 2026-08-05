@@ -27,6 +27,7 @@ export function useAppData() {
         // Fetch all data individually with proper error handling
         const appData: AppData = {
           habits: [],
+          strategies: [],
           weeks: {},
           trades: [],
           pdfReader: { url: '', currentPage: 1, notes: '' },
@@ -43,6 +44,19 @@ export function useAppData() {
           console.log('✅ Loaded', appData.habits.length, 'habits')
         } catch (err) {
           console.error('Error loading habits:', err)
+        }
+
+        try {
+          const { data: strategiesData, error: strategiesErr } = await supabase
+            .from('strategies')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('name')
+          if (strategiesErr) throw strategiesErr
+          appData.strategies = strategiesData || []
+          console.log('✅ Loaded', appData.strategies.length, 'strategies')
+        } catch (err) {
+          console.error('Error loading strategies:', err)
         }
 
         try {
@@ -129,6 +143,22 @@ export function useAppData() {
         })
         .subscribe()
       channels.push(habitsChannel)
+
+      const strategiesChannel = supabase
+        .channel(`strategies-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'strategies', filter: `user_id=eq.${userId}` }, () => {
+          console.log('🔄 Strategies changed in Supabase, fetching...')
+          supabase.from('strategies').select('*').eq('user_id', userId).order('name').then(({ data, error }) => {
+            if (error) {
+              console.error('❌ Error fetching strategies:', error)
+              return
+            }
+            console.log('✅ Fetched', data?.length || 0, 'strategies from realtime')
+            setData(d => ({ ...d, strategies: data || [] }))
+          })
+        })
+        .subscribe()
+      channels.push(strategiesChannel)
 
       const weekChannel = supabase
         .channel(`week_data-${userId}`)
@@ -253,6 +283,32 @@ export function useAppData() {
             .from('habits')
             .delete()
             .in('id', deletedIds)
+        }
+
+        if (newData.strategies.length > 0) {
+          console.log('📝 Syncing', newData.strategies.length, 'strategies to Supabase')
+          await supabase.from('strategies').upsert(
+            newData.strategies.map(s => ({
+              id: s.id,
+              user_id: userId,
+              name: s.name,
+              notes: s.notes || null
+            }))
+          )
+        }
+
+        // Delete strategies that no longer exist locally
+        const localStrategyIds = new Set(newData.strategies.map(s => s.id))
+        const deletedStrategyIds = data.strategies
+          .filter(s => !localStrategyIds.has(s.id))
+          .map(s => s.id)
+        
+        if (deletedStrategyIds.length > 0) {
+          console.log('🗑️ Deleting strategies:', deletedStrategyIds)
+          await supabase
+            .from('strategies')
+            .delete()
+            .in('id', deletedStrategyIds)
         }
 
         await Promise.all(

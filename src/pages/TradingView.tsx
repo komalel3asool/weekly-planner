@@ -1,4 +1,4 @@
-import { AppData, Trade } from '../types'
+import { AppData, Trade, Strategy } from '../types'
 import { generateId } from '../utils/id'
 import './TradingView.css'
 import React, { useState } from 'react'
@@ -10,6 +10,30 @@ interface Props {
 
 export default function TradingView({ data, update }: Props) {
   const trades = data.trades
+  const strategies = data.strategies
+
+  const addStrategy = () => {
+    const name = prompt('Strategy name:')
+    if (!name) return
+    const notes = prompt('Notes (optional):', '')
+
+    update(d => ({
+      ...d,
+      strategies: [...d.strategies, {
+        id: generateId(),
+        name,
+        notes: notes || undefined
+      }]
+    }))
+  }
+
+  const deleteStrategy = (id: string) => {
+    if (!confirm('Delete this strategy?')) return
+    update(d => ({
+      ...d,
+      strategies: d.strategies.filter(s => s.id !== id)
+    }))
+  }
 
   const addTrade = (trade: Partial<Trade>) => {
     const newTrade: Trade = {
@@ -63,7 +87,9 @@ export default function TradingView({ data, update }: Props) {
         </div>
       </div>
 
-      <NewTradeForm onAdd={addTrade} />
+      <StrategyManager strategies={strategies} onAdd={addStrategy} onDelete={deleteStrategy} />
+
+      <NewTradeForm onAdd={addTrade} strategies={strategies} />
 
       <div className="trades-list">
         <h2>Recent Trades</h2>
@@ -76,6 +102,7 @@ export default function TradingView({ data, update }: Props) {
               trade={trade} 
               onUpdate={(updated) => updateTrade(trade.id, updated)}
               onDelete={() => deleteTrade(trade.id)} 
+              strategies={strategies}
             />
           ))
         )}
@@ -93,7 +120,33 @@ function StatCard({ label, value, color }: { label: string; value: any; color?: 
   )
 }
 
-function NewTradeForm({ onAdd }: { onAdd: (t: Partial<Trade>) => void }) {
+function StrategyManager({ strategies, onAdd, onDelete }: { strategies: Strategy[]; onAdd: () => void; onDelete: (id: string) => void }) {
+  return (
+    <div className="card strategies-section">
+      <div className="strategies-header">
+        <h2>Strategies</h2>
+        <button className="button small primary" onClick={onAdd}>+ Add</button>
+      </div>
+      <div className="strategies-list">
+        {strategies.length === 0 ? (
+          <p className="empty">No strategies yet</p>
+        ) : (
+          strategies.map(s => (
+            <div key={s.id} className="strategy-item">
+              <div>
+                <div className="strategy-name">{s.name}</div>
+                {s.notes && <div className="strategy-notes">{s.notes}</div>}
+              </div>
+              <button className="icon-btn delete" onClick={() => onDelete(s.id)}>✕</button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+function NewTradeForm({ onAdd, strategies }: { onAdd: (t: Partial<Trade>) => void; strategies: Strategy[] }) {
   const [form, setForm] = useState({
     ticker: '',
     strategy: '',
@@ -114,7 +167,12 @@ function NewTradeForm({ onAdd }: { onAdd: (t: Partial<Trade>) => void }) {
       <h2>Log Trade</h2>
       <div className="form-grid">
         <input className="input" placeholder="Ticker" value={form.ticker} onChange={(e) => setForm({ ...form, ticker: e.target.value })} />
-        <input className="input" placeholder="Strategy" value={form.strategy} onChange={(e) => setForm({ ...form, strategy: e.target.value })} />
+        <select className="input" value={form.strategy} onChange={(e) => setForm({ ...form, strategy: e.target.value })}>
+          <option value="">Select strategy...</option>
+          {strategies.map(s => (
+            <option key={s.id} value={s.name}>{s.name}</option>
+          ))}
+        </select>
         <select className="input" value={form.direction} onChange={(e) => setForm({ ...form, direction: e.target.value as any })}>
           <option>long</option>
           <option>short</option>
@@ -131,7 +189,7 @@ function NewTradeForm({ onAdd }: { onAdd: (t: Partial<Trade>) => void }) {
   )
 }
 
-function TradeRow({ trade, onUpdate, onDelete }: { trade: Trade; onUpdate: (t: Partial<Trade>) => void; onDelete: () => void }) {
+function TradeRow({ trade, onUpdate, onDelete, strategies }: { trade: Trade; onUpdate: (t: Partial<Trade>) => void; onDelete: () => void; strategies: Strategy[] }) {
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState(trade)
 
@@ -150,12 +208,16 @@ function TradeRow({ trade, onUpdate, onDelete }: { trade: Trade; onUpdate: (t: P
             onChange={(e) => setForm({ ...form, ticker: e.target.value })}
             placeholder="Ticker"
           />
-          <input 
+          <select 
             className="edit-input" 
             value={form.strategy} 
             onChange={(e) => setForm({ ...form, strategy: e.target.value })}
-            placeholder="Strategy"
-          />
+          >
+            <option value="">Select strategy...</option>
+            {strategies.map(s => (
+              <option key={s.id} value={s.name}>{s.name}</option>
+            ))}
+          </select>
           <select 
             className="edit-input" 
             value={form.direction} 
