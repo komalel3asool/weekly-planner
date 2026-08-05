@@ -134,9 +134,6 @@ export function useAppData() {
       const weekChannel = supabase
         .channel(`week_data-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'week_data', filter: `user_id=eq.${userId}` }, (payload) => {
-          // Don't update if we just updated locally (race condition protection)
-          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) return
-          
           if (payload.eventType === 'DELETE') {
             setData(d => {
               const weeks = { ...d.weeks }
@@ -207,15 +204,14 @@ export function useAppData() {
   const update = useCallback((fn: (d: AppData) => AppData) => {
     const newData = fn(data)
     setData(newData)
-    
-    // Record local update time to prevent realtime from overwriting
-    lastLocalUpdateRef.current = Date.now()
 
     if (!userId) return
 
     const syncToSupabase = async () => {
       try {
         if (newData.habits.length > 0) {
+          // Record habit update time to prevent realtime from overwriting
+          lastLocalUpdateRef.current = Date.now()
           await supabase.from('habits').upsert(
             newData.habits.map(h => ({
               id: h.id,
