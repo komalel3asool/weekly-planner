@@ -73,7 +73,7 @@ export default function App() {
       <div className="nav-bar">
         <div className="nav-title">Weekly</div>
         <div className="nav-buttons">
-          {(['weekly', 'habits', 'trading', 'pdf'] as View[]).map(v => (
+          {(['weekly', 'habits', 'trading', 'pdf', 'dbt'] as View[]).map(v => (
             <button
               key={v}
               onClick={() => setView(v)}
