@@ -73,6 +73,20 @@ export interface ShoppingItem {
   createdAt: string
 }
 
+export interface DBTEntry {
+  id: string
+  date: string
+  mood: number // 1-10
+  skills: {
+    mindfulness: boolean
+    distressTolerance: boolean
+    emotionRegulation: boolean
+    interpersonalEffectiveness: boolean
+  }
+  notes: string
+  createdAt: string
+}
+
 export interface AppData {
   habits: Habit[]
   strategies: Strategy[]
@@ -81,5 +95,6 @@ export interface AppData {
   trades: Trade[]
   pdfReader: PdfReader
   shoppingList: ShoppingItem[]
+  dbtEntries: DBTEntry[]
   focus: string
 }

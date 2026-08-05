@@ -7,9 +7,10 @@ import WeeklyView from './pages/WeeklyView'
 import TradingView from './pages/TradingView'
 import PdfView from './pages/PdfView'
 import HabitsView from './pages/HabitsView'
+import DBTView from './pages/DBTView'
 import './App.css'
 
-type View = 'weekly' | 'trading' | 'pdf' | 'habits'
+type View = 'weekly' | 'trading' | 'pdf' | 'habits' | 'dbt'
 
 export default function App() {
   const { data, loading, update, userId } = useAppData()
@@ -56,7 +57,8 @@ export default function App() {
       weekly: '📅',
       trading: '📈',
       pdf: '📚',
-      habits: '⚡'
+      habits: '⚡',
+      dbt: '🫂'
     }
     return icons[v]
   }
@@ -97,6 +99,7 @@ export default function App() {
         {view === 'trading' && <TradingView data={data} update={update} />}
         {view === 'pdf' && <PdfView data={data} update={update} />}
         {view === 'habits' && <HabitsView data={data} update={update} />}
+        {view === 'dbt' && <DBTView data={data} update={update} />}
       </main>
     </div>
   )

@@ -33,6 +33,7 @@ export function useAppData() {
           trades: [],
           pdfReader: { url: '', currentPage: 1, notes: '' },
           shoppingList: [],
+          dbtEntries: [],
           focus: ''
         }
 
@@ -139,6 +140,26 @@ export function useAppData() {
           console.log('✅ Loaded', appData.shoppingList.length, 'shopping items')
         } catch (err) {
           console.error('Error loading shopping list:', err)
+        }
+
+        try {
+          const { data: dbtData, error: dbtErr } = await supabase
+            .from('dbt_entries')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('date', { ascending: false })
+          if (dbtErr) throw dbtErr
+          appData.dbtEntries = dbtData?.map(entry => ({
+            id: entry.id,
+            date: entry.date,
+            mood: entry.mood,
+            skills: entry.skills,
+            notes: entry.notes || '',
+            createdAt: entry.created_at
+          })) || []
+          console.log('✅ Loaded', appData.dbtEntries.length, 'DBT entries')
+        } catch (err) {
+          console.error('Error loading DBT entries:', err)
         }
 
         setData(appData)
@@ -290,6 +311,32 @@ export function useAppData() {
         })
         .subscribe()
       channels.push(shoppingChannel)
+
+      const dbtChannel = supabase
+        .channel(`dbt_entries-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'dbt_entries', filter: `user_id=eq.${userId}` }, () => {
+          console.log('🔄 DBT entries changed in Supabase, fetching...')
+          supabase.from('dbt_entries').select('*').eq('user_id', userId).order('date', { ascending: false }).then(({ data, error }) => {
+            if (error) {
+              console.error('❌ Error fetching DBT entries:', error)
+              return
+            }
+            console.log('✅ Fetched', data?.length || 0, 'DBT entries from realtime')
+            setData(d => ({ 
+              ...d, 
+              dbtEntries: (data || []).map(entry => ({
+                id: entry.id,
+                date: entry.date,
+                mood: entry.mood,
+                skills: entry.skills,
+                notes: entry.notes || '',
+                createdAt: entry.created_at
+              }))
+            }))
+          })
+        })
+        .subscribe()
+      channels.push(dbtChannel)
     } catch (err) {
       console.error('Error setting up realtime:', err)
     }
@@ -479,6 +526,35 @@ export function useAppData() {
             .from('shopping_list')
             .delete()
             .in('id', deletedShoppingIds)
+        }
+
+        if (newData.dbtEntries.length > 0) {
+          console.log('📝 Syncing', newData.dbtEntries.length, 'DBT entries to Supabase')
+          await supabase.from('dbt_entries').upsert(
+            newData.dbtEntries.map(entry => ({
+              id: entry.id,
+              user_id: userId,
+              date: entry.date,
+              mood: entry.mood,
+              skills: entry.skills,
+              notes: entry.notes || '',
+              created_at: entry.createdAt
+            }))
+          )
+        }
+
+        // Delete DBT entries that no longer exist locally
+        const localDbtIds = new Set(newData.dbtEntries.map(e => e.id))
+        const deletedDbtIds = data.dbtEntries
+          .filter(e => !localDbtIds.has(e.id))
+          .map(e => e.id)
+        
+        if (deletedDbtIds.length > 0) {
+          console.log('🗑️ Deleting DBT entries:', deletedDbtIds)
+          await supabase
+            .from('dbt_entries')
+            .delete()
+            .in('id', deletedDbtIds)
         }
       } catch (err) {
         console.error('Error syncing:', err)
