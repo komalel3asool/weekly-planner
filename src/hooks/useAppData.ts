@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { AppData } from '../types'
 import { initializeAppData } from '../utils/weekUtils'
 import { supabase } from '../lib/supabase'
@@ -7,6 +7,7 @@ export function useAppData() {
   const [data, setData] = useState<AppData>(initializeAppData())
   const [loading, setLoading] = useState(true)
   const [userId, setUserId] = useState<string | null>(null)
+  const lastLocalUpdateRef = useRef(0)
 
   // Get user ID and fetch data
   useEffect(() => {
@@ -114,11 +115,15 @@ export function useAppData() {
     if (!userId) return
 
     const channels: any[] = []
+    const DEBOUNCE_MS = 500
 
     try {
       const habitsChannel = supabase
         .channel(`habits-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'habits', filter: `user_id=eq.${userId}` }, () => {
+          // Don't update if we just updated locally (race condition protection)
+          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) return
+          
           supabase.from('habits').select('*').eq('user_id', userId).then(({ data }) => {
             setData(d => ({ ...d, habits: data || [] }))
           })
@@ -129,6 +134,9 @@ export function useAppData() {
       const weekChannel = supabase
         .channel(`week_data-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'week_data', filter: `user_id=eq.${userId}` }, (payload) => {
+          // Don't update if we just updated locally (race condition protection)
+          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) return
+          
           if (payload.eventType === 'DELETE') {
             setData(d => {
               const weeks = { ...d.weeks }
@@ -158,6 +166,9 @@ export function useAppData() {
       const tradesChannel = supabase
         .channel(`trades-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'trades', filter: `user_id=eq.${userId}` }, () => {
+          // Don't update if we just updated locally (race condition protection)
+          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) return
+          
           supabase.from('trades').select('*').eq('user_id', userId).then(({ data }) => {
             setData(d => ({ ...d, trades: data || [] }))
           })
@@ -168,6 +179,9 @@ export function useAppData() {
       const pdfChannel = supabase
         .channel(`pdf_reader-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'pdf_reader', filter: `user_id=eq.${userId}` }, (payload) => {
+          // Don't update if we just updated locally (race condition protection)
+          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) return
+          
           if (payload.new) {
             setData(d => ({
               ...d,
@@ -193,6 +207,9 @@ export function useAppData() {
   const update = useCallback((fn: (d: AppData) => AppData) => {
     const newData = fn(data)
     setData(newData)
+    
+    // Record local update time to prevent realtime from overwriting
+    lastLocalUpdateRef.current = Date.now()
 
     if (!userId) return
 
