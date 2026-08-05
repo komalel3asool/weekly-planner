@@ -121,32 +121,10 @@ export function useAppData() {
       const habitsChannel = supabase
         .channel(`habits-${userId}`)
         .on('postgres_changes', { event: '*', schema: 'public', table: 'habits', filter: `user_id=eq.${userId}` }, (payload) => {
-          // Only skip if we JUST updated this specific habit (very short window)
-          if (Date.now() - lastLocalUpdateRef.current < DEBOUNCE_MS) {
-            console.log('Skipping habit realtime (too soon after local update)')
-            return
-          }
-          
           supabase.from('habits').select('*').eq('user_id', userId).then(({ data }) => {
             if (!data) return
-            // Verify data actually changed before updating state
-            setData(d => {
-              const oldHabits = d.habits
-              const changed = data.some((newH: any) => {
-                const oldH = oldHabits.find(h => h.id === newH.id)
-                if (!oldH) return true
-                // Deep compare key fields
-                return oldH.name !== newH.name || 
-                       oldH.type !== newH.type || 
-                       oldH.target !== newH.target ||
-                       oldH.status !== newH.status
-              })
-              if (changed) {
-                console.log('✅ Habit definitions changed, updating')
-                return { ...d, habits: data }
-              }
-              return d
-            })
+            console.log('✅ Habit definitions updated from Supabase')
+            setData(d => ({ ...d, habits: data }))
           })
         })
         .subscribe()
