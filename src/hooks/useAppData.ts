@@ -208,9 +208,11 @@ export function useAppData() {
 
     const syncToSupabase = async () => {
       try {
+        // Record update time immediately for all syncs
+        lastLocalUpdateRef.current = Date.now()
+        
         if (newData.habits.length > 0) {
-          // Record habit update time to prevent realtime from overwriting
-          lastLocalUpdateRef.current = Date.now()
+          console.log('📝 Syncing', newData.habits.length, 'habits to Supabase')
           await supabase.from('habits').upsert(
             newData.habits.map(h => ({
               id: h.id,
@@ -258,6 +260,7 @@ export function useAppData() {
         )
 
         if (newData.trades.length > 0) {
+          console.log('📝 Syncing', newData.trades.length, 'trades to Supabase')
           await supabase.from('trades').upsert(
             newData.trades.map(t => ({
               id: t.id,
@@ -268,9 +271,11 @@ export function useAppData() {
               direction: t.direction,
               outcome: t.outcome,
               r: t.r,
-              note: t.note || null
+              note: t.note || null,
+              created_at: new Date().toISOString()
             }))
           )
+          console.log('✅ Trades synced')
         }
 
         await supabase.from('pdf_reader').upsert({
