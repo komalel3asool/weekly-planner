@@ -51,14 +51,13 @@ export default function HabitsView({ data, update }: Props) {
     }))
   }
 
-  const handleSetTarget = (habit: Habit) => {
+  const handleSetTarget = (habit: Habit, delta: number) => {
     if (habit.type !== 'daily') return
-    const target = parseInt(prompt(`Target for "${habit.name}":`, habit.target?.toString() || '1') || '1')
-    if (isNaN(target) || target < 1) return
+    const newTarget = Math.max(1, (habit.target || 1) + delta)
 
     update(d => ({
       ...d,
-      habits: d.habits.map(h => h.id === habit.id ? { ...h, target } : h)
+      habits: d.habits.map(h => h.id === habit.id ? { ...h, target: newTarget } : h)
     }))
   }
 
@@ -105,12 +104,6 @@ export default function HabitsView({ data, update }: Props) {
             <span className="streak-label">best</span>
           </div>
         </div>
-
-        {habit.type === 'daily' && habit.target && (
-          <div className="target-badge">
-            Target: {habit.target}
-          </div>
-        )}
       </div>
 
       <div className="habit-card-actions">
@@ -123,13 +116,23 @@ export default function HabitsView({ data, update }: Props) {
         </button>
 
         {habit.type === 'daily' && (
-          <button
-            className="button-small secondary"
-            onClick={() => handleSetTarget(habit)}
-            title="Set target count"
-          >
-            🎯 {habit.target || '?'}
-          </button>
+          <div className="target-controls">
+            <button
+              className="button-small secondary"
+              onClick={() => handleSetTarget(habit, -1)}
+              title="Decrease target"
+            >
+              −
+            </button>
+            <span className="target-value">{habit.target || 1}</span>
+            <button
+              className="button-small secondary"
+              onClick={() => handleSetTarget(habit, 1)}
+              title="Increase target"
+            >
+              +
+            </button>
+          </div>
         )}
 
         {habit.status === 'active' && (
