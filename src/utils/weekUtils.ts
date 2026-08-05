@@ -19,13 +19,19 @@ export function getWeekKey(date = new Date()): string {
 
 export function getWeekDates(weekKey: string): { date: string; day: string }[] {
   const [year, week] = weekKey.split('-W').map(Number)
-  const d = new Date(year, 0, 4)
-  const dayNum = (d.getDay() + 6) % 7
-  d.setDate(d.getDate() - dayNum + (week - 1) * 7)
+  // ISO 8601: Week starts on Monday
+  const jan4 = new Date(year, 0, 4)
+  const dayOfWeek = jan4.getDay() || 7 // Sunday = 7
+  const mondayOfWeek1 = new Date(jan4)
+  mondayOfWeek1.setDate(jan4.getDate() - dayOfWeek + 1)
+  
+  // Get Monday of target week
+  const mondayOfTargetWeek = new Date(mondayOfWeek1)
+  mondayOfTargetWeek.setDate(mondayOfWeek1.getDate() + (week - 1) * 7)
   
   return DAYS.map((day, i) => {
-    const date = new Date(d)
-    date.setDate(date.getDate() + i)
+    const date = new Date(mondayOfTargetWeek)
+    date.setDate(mondayOfTargetWeek.getDate() + i)
     return {
       day,
       date: date.toISOString().split('T')[0]
