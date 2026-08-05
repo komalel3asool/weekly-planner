@@ -1,5 +1,4 @@
-import { AppData, Habit, Color } from '../types'
-import { generateId } from '../utils/id'
+import { Habit, AppData } from '../types'
 import './HabitsView.css'
 
 interface Props {
@@ -7,126 +6,191 @@ interface Props {
   update: (fn: (d: AppData) => AppData) => void
 }
 
-const COLORS: Color[] = ['red', 'blue', 'green', 'orange', 'purple', 'pink', 'cyan', 'yellow']
-const ICONS = ['🎯', '💪', '📚', '🧘', '🏃', '🍎', '💧', '😴', '📝', '🚀']
-
 export default function HabitsView({ data, update }: Props) {
   const activeHabits = data.habits.filter(h => h.status === 'active')
   const pausedHabits = data.habits.filter(h => h.status === 'paused')
   const endedHabits = data.habits.filter(h => h.status === 'ended')
 
-  const addHabit = (name: string, type: 'daily' | 'weekly') => {
-    if (!name.trim()) return
-    
-    const newHabit: Habit = {
-      id: generateId(),
-      name,
-      type,
-      color: COLORS[Math.floor(Math.random() * COLORS.length)],
-      icon: ICONS[Math.floor(Math.random() * ICONS.length)],
-      status: 'active',
-      createdAt: new Date().toISOString(),
-      currentStreak: 0,
-      longestStreak: 0
-    }
-    
+  const handleAddHabit = (type: 'daily' | 'weekly') => {
+    const name = prompt(`New ${type} habit name:`)
+    if (!name) return
+
+    const icon = prompt('Icon (emoji):', '⭐')
+    const color = confirm('Blue? (click OK for blue, Cancel for green)') ? 'blue' : 'green'
+    const target = type === 'daily' ? parseInt(prompt('Target count per day:', '1') || '1') : undefined
+
     update(d => ({
       ...d,
-      habits: [...d.habits, newHabit]
+      habits: [...d.habits, {
+        id: `habit-${Date.now()}`,
+        name,
+        type,
+        icon: icon || '⭐',
+        color,
+        status: 'active',
+        createdAt: new Date().toISOString(),
+        currentStreak: 0,
+        longestStreak: 0,
+        target
+      }]
     }))
   }
 
-  const updateHabit = (id: string, updates: Partial<Habit>) => {
+  const handleToggleType = (habit: Habit) => {
     update(d => ({
       ...d,
-      habits: d.habits.map(h => h.id === id ? { ...h, ...updates } : h)
+      habits: d.habits.map(h => {
+        if (h.id !== habit.id) return h
+        const newType = h.type === 'daily' ? 'weekly' : 'daily'
+        return {
+          ...h,
+          type: newType,
+          target: newType === 'daily' ? (h.target || 1) : undefined
+        }
+      })
     }))
   }
 
-  const deleteHabit = (id: string) => {
+  const handleSetTarget = (habit: Habit) => {
+    if (habit.type !== 'daily') return
+    const target = parseInt(prompt(`Target for "${habit.name}":`, habit.target?.toString() || '1') || '1')
+    if (isNaN(target) || target < 1) return
+
     update(d => ({
       ...d,
-      habits: d.habits.filter(h => h.id !== id)
+      habits: d.habits.map(h => h.id === habit.id ? { ...h, target } : h)
     }))
   }
+
+  const handlePause = (habit: Habit) => {
+    update(d => ({
+      ...d,
+      habits: d.habits.map(h => h.id === habit.id ? { ...h, status: 'paused', pausedAt: new Date().toISOString() } : h)
+    }))
+  }
+
+  const handleResume = (habit: Habit) => {
+    update(d => ({
+      ...d,
+      habits: d.habits.map(h => h.id === habit.id ? { ...h, status: 'active', pausedAt: undefined } : h)
+    }))
+  }
+
+  const handleDelete = (habit: Habit) => {
+    if (!confirm(`Delete "${habit.name}"?`)) return
+    update(d => ({
+      ...d,
+      habits: d.habits.filter(h => h.id !== habit.id)
+    }))
+  }
+
+  const HabitCard = ({ habit }: { habit: Habit }) => (
+    <div className={`habit-card habit-card-${habit.type}`} style={{ '--color': `var(--${habit.color})` } as any}>
+      <div className="habit-card-header">
+        <div className="habit-card-title">
+          <span className="habit-card-icon">{habit.icon}</span>
+          <span className="habit-card-name">{habit.name}</span>
+        </div>
+        <span className="habit-type-badge">{habit.type}</span>
+      </div>
+
+      <div className="habit-card-info">
+        <div className="streak-info">
+          <div className="streak">
+            <span className="streak-num">{habit.currentStreak}</span>
+            <span className="streak-label">current</span>
+          </div>
+          <div className="streak">
+            <span className="streak-num">{habit.longestStreak}</span>
+            <span className="streak-label">best</span>
+          </div>
+        </div>
+
+        {habit.type === 'daily' && habit.target && (
+          <div className="target-badge">
+            Target: {habit.target}
+          </div>
+        )}
+      </div>
+
+      <div className="habit-card-actions">
+        <button
+          className="button-small secondary"
+          onClick={() => handleToggleType(habit)}
+          title={`Convert to ${habit.type === 'daily' ? 'weekly' : 'daily'}`}
+        >
+          {habit.type === 'daily' ? '📅 → 📋' : '📋 → 📅'}
+        </button>
+
+        {habit.type === 'daily' && (
+          <button
+            className="button-small secondary"
+            onClick={() => handleSetTarget(habit)}
+            title="Set target count"
+          >
+            🎯 {habit.target || '?'}
+          </button>
+        )}
+
+        {habit.status === 'active' && (
+          <button className="button-small warning" onClick={() => handlePause(habit)}>
+            ⏸ Pause
+          </button>
+        )}
+
+        {habit.status === 'paused' && (
+          <button className="button-small success" onClick={() => handleResume(habit)}>
+            ▶ Resume
+          </button>
+        )}
+
+        <button className="button-small danger" onClick={() => handleDelete(habit)}>
+          ✕ Delete
+        </button>
+      </div>
+    </div>
+  )
 
   return (
     <div className="habits-view">
       <div className="habits-header">
-        <h1>Habits</h1>
-        <NewHabitForm onAdd={addHabit} />
+        <h1>💪 Habits</h1>
+        <div className="habits-actions">
+          <button className="button primary" onClick={() => handleAddHabit('daily')}>
+            + Daily
+          </button>
+          <button className="button primary" onClick={() => handleAddHabit('weekly')}>
+            + Weekly
+          </button>
+        </div>
       </div>
 
       {activeHabits.length > 0 && (
-        <Section title="Active" habits={activeHabits} onUpdate={updateHabit} onDelete={deleteHabit} />
+        <section className="habits-section">
+          <h2>Active</h2>
+          <div className="habits-grid">
+            {activeHabits.map(h => <HabitCard key={h.id} habit={h} />)}
+          </div>
+        </section>
       )}
 
       {pausedHabits.length > 0 && (
-        <Section title="Paused" habits={pausedHabits} onUpdate={updateHabit} onDelete={deleteHabit} />
+        <section className="habits-section paused">
+          <h2>Paused</h2>
+          <div className="habits-grid">
+            {pausedHabits.map(h => <HabitCard key={h.id} habit={h} />)}
+          </div>
+        </section>
       )}
 
       {endedHabits.length > 0 && (
-        <Section title="Ended" habits={endedHabits} onUpdate={updateHabit} onDelete={deleteHabit} />
+        <section className="habits-section ended">
+          <h2>Ended</h2>
+          <div className="habits-grid">
+            {endedHabits.map(h => <HabitCard key={h.id} habit={h} />)}
+          </div>
+        </section>
       )}
     </div>
   )
 }
-
-function NewHabitForm({ onAdd }: { onAdd: (name: string, type: 'daily' | 'weekly') => void }) {
-  const [name, setName] = React.useState('')
-  const [type, setType] = React.useState<'daily' | 'weekly'>('daily')
-
-  const handleSubmit = () => {
-    onAdd(name, type)
-    setName('')
-  }
-
-  return (
-    <div className="new-habit-form">
-      <input
-        className="input"
-        placeholder="New habit..."
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onKeyDown={(e) => e.key === 'Enter' && handleSubmit()}
-      />
-      <select className="input" value={type} onChange={(e) => setType(e.target.value as any)}>
-        <option>daily</option>
-        <option>weekly</option>
-      </select>
-      <button className="button" onClick={handleSubmit}>Add</button>
-    </div>
-  )
-}
-
-function Section({ title, habits, onUpdate, onDelete }: { title: string; habits: Habit[]; onUpdate: (id: string, u: Partial<Habit>) => void; onDelete: (id: string) => void }) {
-  return (
-    <div className="habits-section">
-      <h2>{title}</h2>
-      <div className="habits-list">
-        {habits.map(habit => (
-          <div key={habit.id} className="habit-card" style={{ '--card-color': `var(--${habit.color})` } as any}>
-            <div className="habit-info">
-              <div className="habit-icon">{habit.icon}</div>
-              <div className="habit-details">
-                <div className="habit-name">{habit.name}</div>
-                <div className="habit-meta">{habit.type} • Streak: {habit.currentStreak}</div>
-              </div>
-            </div>
-            <div className="habit-actions">
-              {habit.status === 'active' && (
-                <button className="icon-btn" onClick={() => onUpdate(habit.id, { status: 'paused' })}>⏸</button>
-              )}
-              {habit.status === 'paused' && (
-                <button className="icon-btn" onClick={() => onUpdate(habit.id, { status: 'active' })}>▶</button>
-              )}
-              <button className="icon-btn delete" onClick={() => onDelete(habit.id)}>✕</button>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-import React from 'react'

@@ -1,19 +1,18 @@
-export type HabitType = 'daily' | 'weekly'
-export type HabitStatus = 'active' | 'paused' | 'ended'
-export type Color = 'red' | 'blue' | 'green' | 'orange' | 'purple' | 'pink' | 'cyan' | 'yellow'
+import { Database } from '@supabase/supabase-js'
 
 export interface Habit {
   id: string
   name: string
-  type: HabitType
-  color: Color
+  type: 'daily' | 'weekly'
   icon: string
-  status: HabitStatus
+  color: string
+  status: 'active' | 'paused' | 'ended'
   createdAt: string
-  pausedAt?: string
+  currentStreak: number
+  longestStreak: number
+  target?: number // NEW: target count for daily habits
   notes?: string
-  currentStreak?: number
-  longestStreak?: number
+  pausedAt?: string
 }
 
 export interface DayData {
@@ -39,7 +38,7 @@ export interface Trade {
   ticker: string
   strategy: string
   direction: 'long' | 'short'
-  outcome: 'win' | 'loss'
+  outcome: 'win' | 'loss' | 'breakeven'
   r: number
   note?: string
 }
