@@ -403,6 +403,20 @@ export function useAppData() {
           }
         }
 
+        // Delete trades that no longer exist locally
+        const localTradeIds = new Set(newData.trades.map(t => t.id))
+        const deletedTradeIds = data.trades
+          .filter(t => !localTradeIds.has(t.id))
+          .map(t => t.id)
+        
+        if (deletedTradeIds.length > 0) {
+          console.log('🗑️ Deleting trades:', deletedTradeIds)
+          await supabase
+            .from('trades')
+            .delete()
+            .in('id', deletedTradeIds)
+        }
+
         await supabase.from('pdf_reader').upsert({
           user_id: userId,
           url: newData.pdfReader.url || '',
