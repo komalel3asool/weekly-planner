@@ -32,6 +32,7 @@ export function useAppData() {
           weeks: {},
           trades: [],
           pdfReader: { url: '', currentPage: 1, notes: '' },
+          shoppingList: [],
           focus: ''
         }
 
@@ -125,6 +126,19 @@ export function useAppData() {
           console.log('✅ Loaded PDF data')
         } catch (err) {
           console.error('Error loading PDF:', err)
+        }
+
+        try {
+          const { data: shoppingData, error: shoppingErr } = await supabase
+            .from('shopping_list')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false })
+          if (shoppingErr) throw shoppingErr
+          appData.shoppingList = shoppingData || []
+          console.log('✅ Loaded', appData.shoppingList.length, 'shopping items')
+        } catch (err) {
+          console.error('Error loading shopping list:', err)
         }
 
         setData(appData)
@@ -260,6 +274,22 @@ export function useAppData() {
         })
         .subscribe()
       channels.push(pdfChannel)
+
+      const shoppingChannel = supabase
+        .channel(`shopping_list-${userId}`)
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'shopping_list', filter: `user_id=eq.${userId}` }, () => {
+          console.log('🔄 Shopping list changed in Supabase, fetching...')
+          supabase.from('shopping_list').select('*').eq('user_id', userId).order('created_at', { ascending: false }).then(({ data, error }) => {
+            if (error) {
+              console.error('❌ Error fetching shopping list:', error)
+              return
+            }
+            console.log('✅ Fetched', data?.length || 0, 'shopping items from realtime')
+            setData(d => ({ ...d, shoppingList: data || [] }))
+          })
+        })
+        .subscribe()
+      channels.push(shoppingChannel)
     } catch (err) {
       console.error('Error setting up realtime:', err)
     }
@@ -423,6 +453,33 @@ export function useAppData() {
           current_page: newData.pdfReader.currentPage || 1,
           notes: newData.pdfReader.notes || ''
         }, { onConflict: 'user_id' })
+
+        if (newData.shoppingList.length > 0) {
+          console.log('📝 Syncing', newData.shoppingList.length, 'shopping items to Supabase')
+          await supabase.from('shopping_list').upsert(
+            newData.shoppingList.map(item => ({
+              id: item.id,
+              user_id: userId,
+              text: item.text,
+              completed: item.completed,
+              created_at: item.createdAt
+            }))
+          )
+        }
+
+        // Delete shopping items that no longer exist locally
+        const localShoppingIds = new Set(newData.shoppingList.map(s => s.id))
+        const deletedShoppingIds = data.shoppingList
+          .filter(s => !localShoppingIds.has(s.id))
+          .map(s => s.id)
+        
+        if (deletedShoppingIds.length > 0) {
+          console.log('🗑️ Deleting shopping items:', deletedShoppingIds)
+          await supabase
+            .from('shopping_list')
+            .delete()
+            .in('id', deletedShoppingIds)
+        }
       } catch (err) {
         console.error('Error syncing:', err)
       }

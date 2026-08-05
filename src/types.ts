@@ -61,6 +61,13 @@ export interface PdfReader {
   notes: string
 }
 
+export interface ShoppingItem {
+  id: string
+  text: string
+  completed: boolean
+  createdAt: string
+}
+
 export interface AppData {
   habits: Habit[]
   strategies: Strategy[]
@@ -68,5 +75,6 @@ export interface AppData {
   weeks: Record<string, WeekData>
   trades: Trade[]
   pdfReader: PdfReader
+  shoppingList: ShoppingItem[]
   focus: string
 }

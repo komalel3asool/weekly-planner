@@ -3,6 +3,7 @@ import { getWeekKey, getWeekDates, getOrCreateWeek, DAYS, DAY_COLORS } from '../
 import DayCard from '../components/DayCard'
 import WeekScore from '../components/WeekScore'
 import WeeklyHabits from '../components/WeeklyHabits'
+import ShoppingList from '../components/ShoppingList'
 import './WeeklyView.css'
 
 interface Props {
@@ -83,6 +84,11 @@ export default function WeeklyView({ data, update, weekKey, weekOffset, setWeekO
           />
         ))}
       </div>
+
+      <ShoppingList 
+        items={data.shoppingList}
+        onUpdate={(items) => update(d => ({ ...d, shoppingList: items }))}
+      />
     </div>
   )
 }
