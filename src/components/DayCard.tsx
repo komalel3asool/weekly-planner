@@ -41,12 +41,58 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
     removeItem('todos', index)
   }
 
+  const exportDayData = () => {
+    const date = new Date(dayData.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+    
+    let text = `${date}\n${'='.repeat(date.length)}\n\n`
+
+    if (dayData.done.length > 0) {
+      text += `✓ DONE\n`
+      dayData.done.forEach(item => {
+        text += `  • ${item}\n`
+      })
+      text += '\n'
+    }
+
+    if (dayData.meetings.length > 0) {
+      text += `📞 MEETINGS\n`
+      dayData.meetings.forEach(item => {
+        text += `  • ${item}\n`
+      })
+      text += '\n'
+    }
+
+    if (dayData.results.length > 0) {
+      text += `🎯 RESULTS\n`
+      dayData.results.forEach(item => {
+        text += `  • ${item}\n`
+      })
+      text += '\n'
+    }
+
+    if (dayData.todos.length > 0) {
+      text += `☐ TODOS (INCOMPLETE)\n`
+      dayData.todos.forEach(item => {
+        text += `  • ${item}\n`
+      })
+      text += '\n'
+    }
+
+    // Copy to clipboard and show feedback
+    navigator.clipboard.writeText(text).then(() => {
+      alert('✅ Copied to clipboard!')
+    }).catch(() => {
+      alert('Failed to copy. Please try again.')
+    })
+  }
+
   return (
     <div className="day-card" style={{ borderTopColor: bgColor }}>
       <div className="day-header">
         <h2>{day}</h2>
         {isToday && <span className="today-badge">Today</span>}
         <span className="day-date">{new Date(dayData.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+        <button className="icon-btn export" onClick={exportDayData} title="Export day to clipboard">📋</button>
       </div>
 
       <Section title="✓ Done" items={dayData.done} onRemove={(i) => removeItem('done', i)} onAdd={(v) => addItem('done', v)} />
