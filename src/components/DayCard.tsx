@@ -12,6 +12,7 @@ interface Props {
 
 export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpdate }: Props) {
   const activeHabits = habits.filter(h => h.status === 'active')
+  const dailyHabits = activeHabits.filter(h => h.type === 'daily')
 
   const updateList = (key: keyof DayData, newList: string[]) => {
     onUpdate({ ...dayData, [key]: newList })
@@ -56,10 +57,10 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
       
       <Section title="🎯 Results" items={dayData.results} onRemove={(i) => removeItem('results', i)} onAdd={(v) => addItem('results', v)} />
 
-      {activeHabits.length > 0 && (
+      {dailyHabits.length > 0 && (
         <div className="habits-log">
           <h3>Habits</h3>
-          {activeHabits.map(habit => (
+          {dailyHabits.map(habit => (
             <div key={habit.id} className="habit-tracker" style={{ '--color': `var(--${habit.color})` } as any}>
               <span className="habit-name">{habit.icon} {habit.name}</span>
               <div className="habit-count">

@@ -128,30 +128,38 @@
 .habit-count {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.35rem;
 }
 
 .habit-count button {
   background: var(--color);
   color: white;
   border: none;
-  width: 24px;
-  height: 24px;
-  border-radius: 4px;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
   cursor: pointer;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.8;
+  opacity: 0.85;
+  transition: all 0.2s ease;
+  font-weight: 600;
 }
 
 .habit-count button:hover {
   opacity: 1;
+  transform: scale(1.08);
+}
+
+.habit-count button:active {
+  transform: scale(0.95);
 }
 
 .habit-count span {
-  min-width: 20px;
+  min-width: 24px;
   text-align: center;
-  font-weight: 600;
+  font-weight: 700;
+  font-size: 0.95rem;
 }
