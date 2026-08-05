@@ -15,10 +15,15 @@ export interface Habit {
   pausedAt?: string
 }
 
+export interface TodoItem {
+  text: string
+  completed: boolean
+}
+
 export interface DayData {
   date: string
   done: string[]
-  todos: string[]
+  todos: TodoItem[]
   meetings: string[]
   results: string[]
   habitLog: Record<string, { count: number; notes?: string }>

@@ -1,5 +1,6 @@
-import { DayData, Habit } from '../types'
+import { DayData, Habit, TodoItem } from '../types'
 import './DayCard.css'
+import React, { useState } from 'react'
 
 interface Props {
   day: string
@@ -14,18 +15,23 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
   const activeHabits = habits.filter(h => h.status === 'active')
   const dailyHabits = activeHabits.filter(h => h.type === 'daily')
 
-  const updateList = (key: keyof DayData, newList: string[]) => {
+  const updateList = (key: keyof DayData, newList: any[]) => {
     onUpdate({ ...dayData, [key]: newList })
   }
 
   const addItem = (key: keyof DayData, value: string) => {
     if (!value.trim()) return
-    const list = dayData[key] as string[]
-    updateList(key, [...list, value])
+    const list = dayData[key] as any[]
+    
+    if (key === 'todos') {
+      updateList(key, [...list, { text: value, completed: false }])
+    } else {
+      updateList(key, [...list, value])
+    }
   }
 
   const removeItem = (key: keyof DayData, index: number) => {
-    const list = dayData[key] as string[]
+    const list = dayData[key] as any[]
     updateList(key, list.filter((_, i) => i !== index))
   }
 
@@ -35,10 +41,11 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
   }
 
   const toggleTodo = (index: number) => {
-    const todo = dayData.todos[index]
-    const done = dayData.done
-    updateList('done', [...done, todo])
-    removeItem('todos', index)
+    const todos = dayData.todos as TodoItem[]
+    const updated = todos.map((t, i) => 
+      i === index ? { ...t, completed: !t.completed } : t
+    )
+    updateList('todos', updated)
   }
 
   const exportDayData = () => {
@@ -70,10 +77,11 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
       text += '\n'
     }
 
-    if (dayData.todos.length > 0) {
+    const incompleteTodos = (dayData.todos as TodoItem[]).filter(t => !t.completed)
+    if (incompleteTodos.length > 0) {
       text += `☐ TODOS (INCOMPLETE)\n`
-      dayData.todos.forEach(item => {
-        text += `  • ${item}\n`
+      incompleteTodos.forEach(item => {
+        text += `  • ${item.text}\n`
       })
       text += '\n'
     }
@@ -97,7 +105,7 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
 
       <Section title="✓ Done" items={dayData.done} onRemove={(i) => removeItem('done', i)} onAdd={(v) => addItem('done', v)} />
       
-      <Section title="□ Todos" items={dayData.todos} onRemove={(i) => removeItem('todos', i)} onAdd={(v) => addItem('todos', v)} onToggle={(i) => toggleTodo(i)} />
+      <TodoSection items={dayData.todos as TodoItem[]} onRemove={(i) => removeItem('todos', i)} onAdd={(v) => addItem('todos', v)} onToggle={(i) => toggleTodo(i)} />
       
       <Section title="📞 Meetings" items={dayData.meetings} onRemove={(i) => removeItem('meetings', i)} onAdd={(v) => addItem('meetings', v)} />
       
@@ -128,20 +136,23 @@ export default function DayCard({ day, dayData, bgColor, isToday, habits, onUpda
   )
 }
 
-function Section({ title, items, onAdd, onRemove, onToggle }: { title: string; items: string[]; onAdd: (v: string) => void; onRemove: (i: number) => void; onToggle?: (i: number) => void }) {
+function Section({ title, items, onAdd, onRemove }: { title: string; items: string[]; onAdd: (v: string) => void; onRemove: (i: number) => void }) {
   const [input, setInput] = React.useState('')
 
   return (
-    <div className="section">
+    <div className="list-section">
       <h3>{title}</h3>
-      {items.map((item, i) => (
-        <div key={i} className="item">
-          {onToggle && <button className="toggle" onClick={() => onToggle(i)}>✓</button>}
-          <span>{item}</span>
-          <button className="remove" onClick={() => onRemove(i)}>✕</button>
+      {items.length > 0 && (
+        <div className="list-items">
+          {items.map((item, i) => (
+            <div key={i} className="list-item">
+              <span>{item}</span>
+              <button className="icon-btn remove" onClick={() => onRemove(i)}>✕</button>
+            </div>
+          ))}
         </div>
-      ))}
-      <div className="input-row">
+      )}
+      <div className="add-item">
         <input
           className="input"
           value={input}
@@ -154,9 +165,46 @@ function Section({ title, items, onAdd, onRemove, onToggle }: { title: string; i
           }}
           placeholder={`Add ${title.toLowerCase()}...`}
         />
+        <button className="button small" onClick={() => { onAdd(input); setInput('') }}>+</button>
       </div>
     </div>
   )
 }
 
-import React from 'react'
+function TodoSection({ items, onAdd, onRemove, onToggle }: { items: TodoItem[]; onAdd: (v: string) => void; onRemove: (i: number) => void; onToggle: (i: number) => void }) {
+  const [input, setInput] = React.useState('')
+
+  return (
+    <div className="list-section">
+      <h3>□ Todos</h3>
+      {items.length > 0 && (
+        <div className="list-items">
+          {items.map((item, i) => (
+            <div key={i} className={`list-item todo-item ${item.completed ? 'completed' : ''}`}>
+              <button className={`toggle-checkbox ${item.completed ? 'checked' : ''}`} onClick={() => onToggle(i)}>
+                {item.completed ? '✓' : '○'}
+              </button>
+              <span className="todo-text">{item.text}</span>
+              <button className="icon-btn remove" onClick={() => onRemove(i)}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="add-item">
+        <input
+          className="input"
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') {
+              onAdd(input)
+              setInput('')
+            }
+          }}
+          placeholder="Add todo..."
+        />
+        <button className="button small" onClick={() => { onAdd(input); setInput('') }}>+</button>
+      </div>
+    </div>
+  )
+}

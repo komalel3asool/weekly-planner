@@ -83,9 +83,9 @@ export const DUMMY_DATA = {
             "Read 20 pages"
           ],
           "todos": [
-            "Review weekly goals",
-            "Catch up on emails",
-            "Call with mentor"
+            { "text": "Review weekly goals", "completed": false },
+            { "text": "Catch up on emails", "completed": false },
+            { "text": "Call with mentor", "completed": false }
           ],
           "meetings": [
             "Weekly sync with team - 1pm"
@@ -121,9 +121,9 @@ export const DUMMY_DATA = {
             "Coded new feature"
           ],
           "todos": [
-            "Review trade results",
-            "Update documentation",
-            "Meal prep for week"
+            { "text": "Review trade results", "completed": false },
+            { "text": "Update documentation", "completed": false },
+            { "text": "Meal prep for week", "completed": false }
           ],
           "meetings": [],
           "results": [
@@ -153,9 +153,9 @@ export const DUMMY_DATA = {
             "Met with designer"
           ],
           "todos": [
-            "Write trading journal",
-            "Follow up with leads",
-            "Plan Friday agenda"
+            { "text": "Write trading journal", "completed": false },
+            { "text": "Follow up with leads", "completed": false },
+            { "text": "Plan Friday agenda", "completed": false }
           ],
           "meetings": [
             "Design review - 2pm",
@@ -184,8 +184,8 @@ export const DUMMY_DATA = {
             "Gym session"
           ],
           "todos": [
-            "Prepare for presentation",
-            "Review competitor analysis"
+            { "text": "Prepare for presentation", "completed": false },
+            { "text": "Review competitor analysis", "completed": false }
           ],
           "meetings": [
             "Client call - 10am"
@@ -218,8 +218,8 @@ export const DUMMY_DATA = {
             "Team celebration"
           ],
           "todos": [
-            "Finalize monthly report",
-            "Organize notes"
+            { "text": "Finalize monthly report", "completed": false },
+            { "text": "Organize notes", "completed": false }
           ],
           "meetings": [
             "Team standup - 9am",
