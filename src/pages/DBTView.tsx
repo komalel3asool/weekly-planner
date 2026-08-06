@@ -19,6 +19,52 @@ export default function DBTView({ data, update }: Props) {
   const [error, setError] = useState('')
   const worksheetFileRef = useRef<HTMLInputElement>(null)
 
+  const syncToSupabase = async (entry: DBTEntry) => {
+    try {
+      const user = (await supabase.auth.getUser()).data.user
+      if (!user) {
+        throw new Error('Not authenticated')
+      }
+
+      const dbEntry = {
+        id: entry.id,
+        user_id: user.id,
+        date: entry.date,
+        mood: entry.mood,
+        skills: entry.skills,
+        notes: entry.notes,
+        worksheet_url: entry.worksheetUrl || null,
+        worksheet_page: entry.worksheetPage || 1,
+        created_at: entry.createdAt
+      }
+
+      if (todayEntry && todayEntry.id === entry.id) {
+        // Update existing
+        const { error: err } = await supabase
+          .from('dbt_entries')
+          .update(dbEntry)
+          .eq('id', entry.id)
+          .eq('user_id', user.id)
+        
+        if (err) throw err
+        console.log('✅ DBT entry updated:', entry.id)
+      } else {
+        // Insert new
+        const { error: err } = await supabase
+          .from('dbt_entries')
+          .insert([dbEntry])
+        
+        if (err) throw err
+        console.log('✅ DBT entry inserted:', entry.id)
+      }
+      
+      setError('')
+    } catch (err) {
+      console.error('Supabase sync error:', err)
+      throw err
+    }
+  }
+
   const addOrUpdateEntry = async (entry: Partial<DBTEntry>) => {
     setSyncing(true)
     setError('')
@@ -26,28 +72,16 @@ export default function DBTView({ data, update }: Props) {
     try {
       if (todayEntry) {
         // Update existing
-        const mapped: any = {}
-        if (entry.mood !== undefined) mapped.mood = entry.mood
-        if (entry.skills !== undefined) mapped.skills = entry.skills
-        if (entry.notes !== undefined) mapped.notes = entry.notes
-        if (entry.worksheetUrl !== undefined) mapped.worksheet_url = entry.worksheetUrl
-        if (entry.worksheetPage !== undefined) mapped.worksheet_page = entry.worksheetPage
-        
-        const { error: updateErr } = await supabase
-          .from('dbt_entries')
-          .update(mapped)
-          .eq('id', todayEntry.id)
-        
-        if (updateErr) throw updateErr
-        
+        const updated = { ...todayEntry, ...entry }
         update(d => ({
           ...d,
           dbtEntries: d.dbtEntries.map(e => 
-            e.id === todayEntry.id ? { ...e, ...entry } : e
+            e.id === todayEntry.id ? updated : e
           )
         }))
+        await syncToSupabase(updated)
       } else {
-        // Insert new
+        // Create new
         const newEntry: DBTEntry = {
           id: generateId(),
           date: today,
@@ -61,38 +95,19 @@ export default function DBTView({ data, update }: Props) {
           notes: entry.notes || '',
           worksheetUrl: entry.worksheetUrl,
           worksheetPage: entry.worksheetPage || 1,
-          createdAt: new Date().toISOString(),
-          ...entry
+          createdAt: new Date().toISOString()
         }
-        
-        const user = (await supabase.auth.getUser()).data.user
-        if (!user) throw new Error('Not authenticated')
-        
-        const { error: insertErr } = await supabase
-          .from('dbt_entries')
-          .insert([{
-            id: newEntry.id,
-            user_id: user.id,
-            date: newEntry.date,
-            mood: newEntry.mood,
-            skills: newEntry.skills,
-            notes: newEntry.notes,
-            worksheet_url: newEntry.worksheetUrl,
-            worksheet_page: newEntry.worksheetPage,
-            created_at: newEntry.createdAt
-          }])
-        
-        if (insertErr) throw insertErr
         
         update(d => ({
           ...d,
           dbtEntries: [newEntry, ...d.dbtEntries]
         }))
+        
+        await syncToSupabase(newEntry)
       }
-      console.log('✅ DBT entry saved')
     } catch (err) {
       console.error('DBT save error:', err)
-      setError('Failed to save entry. Check your connection and try again.')
+      setError('Failed to save. Make sure you\'re logged in.')
     } finally {
       setSyncing(false)
     }
