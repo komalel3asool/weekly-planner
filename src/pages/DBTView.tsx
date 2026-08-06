@@ -15,37 +15,69 @@ export default function DBTView({ data, update }: Props) {
   const today = getLocalDateString()
   const todayEntry = entries.find(e => e.date === today)
   const [uploading, setUploading] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [error, setError] = useState('')
   const worksheetFileRef = useRef<HTMLInputElement>(null)
 
-  const addOrUpdateEntry = (entry: Partial<DBTEntry>) => {
-    if (todayEntry) {
-      update(d => ({
-        ...d,
-        dbtEntries: d.dbtEntries.map(e => 
-          e.id === todayEntry.id ? { ...e, ...entry } : e
-        )
-      }))
-    } else {
-      const newEntry: DBTEntry = {
-        id: generateId(),
-        date: today,
-        mood: 5,
-        skills: {
-          mindfulness: false,
-          distressTolerance: false,
-          emotionRegulation: false,
-          interpersonalEffectiveness: false
-        },
-        notes: '',
-        worksheetUrl: undefined,
-        worksheetPage: 1,
-        createdAt: new Date().toISOString(),
-        ...entry
+  const addOrUpdateEntry = async (entry: Partial<DBTEntry>) => {
+    setSyncing(true)
+    setError('')
+    
+    try {
+      if (todayEntry) {
+        // Update existing
+        const { error: updateErr } = await supabase
+          .from('dbt_entries')
+          .update(entry)
+          .eq('id', todayEntry.id)
+        
+        if (updateErr) throw updateErr
+        
+        update(d => ({
+          ...d,
+          dbtEntries: d.dbtEntries.map(e => 
+            e.id === todayEntry.id ? { ...e, ...entry } : e
+          )
+        }))
+      } else {
+        // Insert new
+        const newEntry: DBTEntry = {
+          id: generateId(),
+          date: today,
+          mood: entry.mood || 5,
+          skills: entry.skills || {
+            mindfulness: false,
+            distressTolerance: false,
+            emotionRegulation: false,
+            interpersonalEffectiveness: false
+          },
+          notes: entry.notes || '',
+          worksheetUrl: entry.worksheetUrl,
+          worksheetPage: entry.worksheetPage || 1,
+          createdAt: new Date().toISOString(),
+          ...entry
+        }
+        
+        const { error: insertErr } = await supabase
+          .from('dbt_entries')
+          .insert([{
+            ...newEntry,
+            user_id: (await supabase.auth.getUser()).data.user?.id
+          }])
+        
+        if (insertErr) throw insertErr
+        
+        update(d => ({
+          ...d,
+          dbtEntries: [newEntry, ...d.dbtEntries]
+        }))
       }
-      update(d => ({
-        ...d,
-        dbtEntries: [newEntry, ...d.dbtEntries]
-      }))
+      console.log('✅ DBT entry saved')
+    } catch (err) {
+      console.error('DBT save error:', err)
+      setError('Failed to save entry. Check your connection and try again.')
+    } finally {
+      setSyncing(false)
     }
   }
 
@@ -56,6 +88,8 @@ export default function DBTView({ data, update }: Props) {
     }
 
     setUploading(true)
+    setError('')
+    
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `worksheet-${todayEntry.id}.${fileExt}`
@@ -71,14 +105,14 @@ export default function DBTView({ data, update }: Props) {
         .from('dbt-worksheets')
         .getPublicUrl(filePath)
 
-      addOrUpdateEntry({ 
+      await addOrUpdateEntry({ 
         worksheetUrl: publicUrl,
         worksheetPage: 1
       })
-      console.log('✅ Worksheet uploaded')
+      console.log('✅ Worksheet uploaded and saved')
     } catch (err) {
       console.error('Error uploading worksheet:', err)
-      alert('Failed to upload worksheet')
+      setError('Failed to upload worksheet')
     } finally {
       setUploading(false)
     }
@@ -108,7 +142,7 @@ export default function DBTView({ data, update }: Props) {
       <div className="dbt-header">
         <div>
           <h1>DBT Skills Tracker</h1>
-          <p className="subtitle">You've got this. One skill at a time. 🫂</p>
+          <p className="subtitle">You\'ve got this. One skill at a time. 🫂</p>
         </div>
         <div className="dbt-stats">
           <div className="stat">
@@ -121,12 +155,15 @@ export default function DBTView({ data, update }: Props) {
               {avgMood}/10
             </div>
           </div>
-          <div className="stat">
-            <div className="stat-label">Weeks</div>
-            <div className="stat-value">20</div>
-          </div>
         </div>
       </div>
+
+      {error && (
+        <div className="error-banner">
+          <span>⚠️ {error}</span>
+          <button className="icon-btn" onClick={() => setError('')}>✕</button>
+        </div>
+      )}
 
       {todayEntry ? (
         <TodayEntry 
@@ -135,6 +172,7 @@ export default function DBTView({ data, update }: Props) {
           getMoodColor={getMoodColor}
           onWorksheetUpload={handleWorksheetUpload}
           uploading={uploading}
+          syncing={syncing}
           worksheetFileRef={worksheetFileRef}
         />
       ) : (
@@ -184,12 +222,13 @@ function StartEntry({ onStart }: { onStart: (entry: Partial<DBTEntry>) => void }
   )
 }
 
-function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploading, worksheetFileRef }: {
+function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploading, syncing, worksheetFileRef }: {
   entry: DBTEntry
   onUpdate: (e: Partial<DBTEntry>) => void
   getMoodColor: (m: number) => string
   onWorksheetUpload: (file: File) => void
   uploading: boolean
+  syncing: boolean
   worksheetFileRef: React.RefObject<HTMLInputElement>
 }) {
   return (
@@ -254,6 +293,10 @@ function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploadin
 
       {/* Notes & Skills Area */}
       <div className="dbt-notes-section">
+        <div className="saving-indicator" style={{ opacity: syncing ? 1 : 0 }}>
+          ⏳ Saving...
+        </div>
+
         <div className="mood-section">
           <label>Mood</label>
           <div className="mood-slider">
@@ -264,6 +307,7 @@ function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploadin
               value={entry.mood}
               onChange={(e) => onUpdate({ mood: parseInt(e.target.value) })}
               style={{ background: `linear-gradient(to right, #ff3b30, #34c759)` }}
+              disabled={syncing}
             />
             <span className="mood-display" style={{ color: getMoodColor(entry.mood) }}>
               {entry.mood}/10
@@ -289,6 +333,7 @@ function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploadin
                     [skill.key]: !entry.skills[skill.key as keyof typeof entry.skills]
                   }
                 })}
+                disabled={syncing}
               >
                 <div className="skill-check">{entry.skills[skill.key as keyof typeof entry.skills] ? '✓' : '○'}</div>
                 <div className="skill-label">{skill.label}</div>
@@ -302,8 +347,9 @@ function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploadin
           <textarea 
             value={entry.notes}
             onChange={(e) => onUpdate({ notes: e.target.value })}
-            placeholder="What happened today? How did skills help?"
+            placeholder="What happened today? How did skills help? (Auto-saves as you type)"
             className="notes-input"
+            disabled={syncing}
           />
         </div>
 

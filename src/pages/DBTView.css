@@ -1,3 +1,55 @@
+.error-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #ff3b30;
+  color: white;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
+  animation: slideDown 0.3s ease-out;
+}
+
+.error-banner .icon-btn {
+  color: white;
+  opacity: 0.8;
+}
+
+.error-banner .icon-btn:hover {
+  opacity: 1;
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.saving-indicator {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  transition: opacity 0.2s;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.dbt-notes-section {
+  position: relative;
+}
+
 /* DBT Skills Tracker */
 .dbt-view {
   display: flex;
