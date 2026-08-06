@@ -85,6 +85,7 @@ export interface DBTEntry {
   }
   notes: string
   worksheetUrl?: string
+  worksheetPage?: number
   createdAt: string
 }
 

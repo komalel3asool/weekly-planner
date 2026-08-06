@@ -1,8 +1,9 @@
 import { AppData, DBTEntry } from '../types'
 import { generateId } from '../utils/id'
 import { supabase } from '../lib/supabase'
+import { getLocalDateString } from '../utils/weekUtils'
 import './DBTView.css'
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 
 interface Props {
   data: AppData
@@ -11,13 +12,13 @@ interface Props {
 
 export default function DBTView({ data, update }: Props) {
   const entries = data.dbtEntries
-  const today = new Date().toISOString().split('T')[0]
+  const today = getLocalDateString()
   const todayEntry = entries.find(e => e.date === today)
   const [uploading, setUploading] = useState(false)
+  const worksheetFileRef = useRef<HTMLInputElement>(null)
 
   const addOrUpdateEntry = (entry: Partial<DBTEntry>) => {
     if (todayEntry) {
-      // Update existing
       update(d => ({
         ...d,
         dbtEntries: d.dbtEntries.map(e => 
@@ -25,7 +26,6 @@ export default function DBTView({ data, update }: Props) {
         )
       }))
     } else {
-      // Create new
       const newEntry: DBTEntry = {
         id: generateId(),
         date: today,
@@ -37,6 +37,8 @@ export default function DBTView({ data, update }: Props) {
           interpersonalEffectiveness: false
         },
         notes: '',
+        worksheetUrl: undefined,
+        worksheetPage: 1,
         createdAt: new Date().toISOString(),
         ...entry
       }
@@ -47,7 +49,7 @@ export default function DBTView({ data, update }: Props) {
     }
   }
 
-  const handleFileUpload = async (file: File) => {
+  const handleWorksheetUpload = async (file: File) => {
     if (!todayEntry) {
       alert('Create today\'s entry first by setting your mood')
       return
@@ -56,7 +58,7 @@ export default function DBTView({ data, update }: Props) {
     setUploading(true)
     try {
       const fileExt = file.name.split('.').pop()
-      const fileName = `${todayEntry.id}.${fileExt}`
+      const fileName = `worksheet-${todayEntry.id}.${fileExt}`
       const filePath = `dbt-worksheets/${fileName}`
 
       const { error: uploadError } = await supabase.storage
@@ -69,11 +71,14 @@ export default function DBTView({ data, update }: Props) {
         .from('dbt-worksheets')
         .getPublicUrl(filePath)
 
-      addOrUpdateEntry({ worksheetUrl: publicUrl })
+      addOrUpdateEntry({ 
+        worksheetUrl: publicUrl,
+        worksheetPage: 1
+      })
       console.log('✅ Worksheet uploaded')
     } catch (err) {
       console.error('Error uploading worksheet:', err)
-      alert('Failed to upload worksheet. Check console.')
+      alert('Failed to upload worksheet')
     } finally {
       setUploading(false)
     }
@@ -128,8 +133,9 @@ export default function DBTView({ data, update }: Props) {
           entry={todayEntry} 
           onUpdate={addOrUpdateEntry} 
           getMoodColor={getMoodColor}
-          onFileUpload={handleFileUpload}
+          onWorksheetUpload={handleWorksheetUpload}
           uploading={uploading}
+          worksheetFileRef={worksheetFileRef}
         />
       ) : (
         <StartEntry onStart={addOrUpdateEntry} />
@@ -178,108 +184,142 @@ function StartEntry({ onStart }: { onStart: (entry: Partial<DBTEntry>) => void }
   )
 }
 
-function TodayEntry({ entry, onUpdate, getMoodColor, onFileUpload, uploading }: { 
+function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploading, worksheetFileRef }: {
   entry: DBTEntry
   onUpdate: (e: Partial<DBTEntry>) => void
   getMoodColor: (m: number) => string
-  onFileUpload: (file: File) => void
+  onWorksheetUpload: (file: File) => void
   uploading: boolean
+  worksheetFileRef: React.RefObject<HTMLInputElement>
 }) {
-  const fileInputRef = React.useRef<HTMLInputElement>(null)
-
   return (
-    <div className="card today-entry">
-      <h2>Today\'s Entry</h2>
-      
-      <div className="mood-section">
-        <label>How are you feeling?</label>
-        <div className="mood-slider">
-          <input 
-            type="range" 
-            min="1" 
-            max="10" 
-            value={entry.mood}
-            onChange={(e) => onUpdate({ mood: parseInt(e.target.value) })}
-            style={{ 
-              background: `linear-gradient(to right, #ff3b30, #34c759)`
-            }}
-          />
-          <span className="mood-display" style={{ color: getMoodColor(entry.mood) }}>
-            {entry.mood}/10
-          </span>
-        </div>
-      </div>
-
-      <div className="skills-section">
-        <label>Skills practiced today:</label>
-        <div className="skills-grid">
-          {[
-            { key: 'mindfulness', label: '🧘 Mindfulness', desc: 'Present moment awareness' },
-            { key: 'distressTolerance', label: '💪 Distress Tolerance', desc: 'Surviving the crisis' },
-            { key: 'emotionRegulation', label: '🌊 Emotion Regulation', desc: 'Managing emotions' },
-            { key: 'interpersonalEffectiveness', label: '🤝 Interpersonal', desc: 'Relationship skills' }
-          ].map(skill => (
-            <button 
-              key={skill.key}
-              className={`skill-btn ${entry.skills[skill.key as keyof typeof entry.skills] ? 'active' : ''}`}
-              onClick={() => onUpdate({
-                skills: {
-                  ...entry.skills,
-                  [skill.key]: !entry.skills[skill.key as keyof typeof entry.skills]
-                }
-              })}
-            >
-              <div className="skill-check">{entry.skills[skill.key as keyof typeof entry.skills] ? '✓' : '○'}</div>
-              <div className="skill-label">{skill.label}</div>
-              <div className="skill-desc">{skill.desc}</div>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="notes-section">
-        <label>Reflections:</label>
-        <textarea 
-          value={entry.notes}
-          onChange={(e) => onUpdate({ notes: e.target.value })}
-          placeholder="What happened today? How did the skills help? What was hard?"
-          className="notes-input"
-        />
-      </div>
-
+    <div className="dbt-container">
+      {/* Worksheet Area */}
       <div className="worksheet-section">
-        <label>📄 DBT Worksheet:</label>
-        <div className="worksheet-upload">
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.txt,.jpg,.jpeg,.png"
-            onChange={(e) => e.target.files?.[0] && onFileUpload(e.target.files[0])}
-            style={{ display: 'none' }}
-          />
-          <button 
-            className="upload-btn"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploading}
-          >
-            {uploading ? '⏳ Uploading...' : '+ Upload Worksheet'}
-          </button>
-          {entry.worksheetUrl && (
-            <a href={entry.worksheetUrl} target="_blank" rel="noopener noreferrer" className="worksheet-link">
-              📎 View Worksheet
-            </a>
-          )}
-        </div>
+        {!entry.worksheetUrl ? (
+          <div className="worksheet-empty">
+            <h3>📄 Today\'s Worksheet</h3>
+            <p>Upload your DBT worksheet</p>
+            <button 
+              className="button"
+              onClick={() => worksheetFileRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading ? '⏳ Uploading...' : '+ Upload PDF'}
+            </button>
+            <input
+              ref={worksheetFileRef}
+              type="file"
+              accept=".pdf,.jpg,.jpeg,.png"
+              onChange={(e) => e.target.files?.[0] && onWorksheetUpload(e.target.files[0])}
+              style={{ display: 'none' }}
+            />
+          </div>
+        ) : (
+          <div className="worksheet-viewer">
+            <div className="worksheet-header">
+              <h3>Worksheet</h3>
+              <button 
+                className="button small secondary"
+                onClick={() => worksheetFileRef.current?.click()}
+              >
+                📁 Replace
+              </button>
+              <input
+                ref={worksheetFileRef}
+                type="file"
+                accept=".pdf,.jpg,.jpeg,.png"
+                onChange={(e) => e.target.files?.[0] && onWorksheetUpload(e.target.files[0])}
+                style={{ display: 'none' }}
+              />
+            </div>
+            <div className="worksheet-embed">
+              {entry.worksheetUrl.endsWith('.pdf') ? (
+                <iframe 
+                  src={`${entry.worksheetUrl}#page=${entry.worksheetPage || 1}`}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                  title="DBT Worksheet"
+                />
+              ) : (
+                <img 
+                  src={entry.worksheetUrl} 
+                  alt="Worksheet" 
+                  style={{ maxWidth: '100%', height: 'auto' }}
+                />
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
-      <div className="encouragement">
-        ✨ You\'re showing up for yourself. That takes strength.
+      {/* Notes & Skills Area */}
+      <div className="dbt-notes-section">
+        <div className="mood-section">
+          <label>Mood</label>
+          <div className="mood-slider">
+            <input 
+              type="range" 
+              min="1" 
+              max="10" 
+              value={entry.mood}
+              onChange={(e) => onUpdate({ mood: parseInt(e.target.value) })}
+              style={{ background: `linear-gradient(to right, #ff3b30, #34c759)` }}
+            />
+            <span className="mood-display" style={{ color: getMoodColor(entry.mood) }}>
+              {entry.mood}/10
+            </span>
+          </div>
+        </div>
+
+        <div className="skills-section">
+          <label>Skills practiced:</label>
+          <div className="skills-grid">
+            {[
+              { key: 'mindfulness', label: '🧘 Mindfulness', desc: 'Present moment' },
+              { key: 'distressTolerance', label: '💪 Distress Tolerance', desc: 'Survive crisis' },
+              { key: 'emotionRegulation', label: '🌊 Emotion Reg', desc: 'Manage emotions' },
+              { key: 'interpersonalEffectiveness', label: '🤝 Interpersonal', desc: 'Relationships' }
+            ].map(skill => (
+              <button 
+                key={skill.key}
+                className={`skill-btn ${entry.skills[skill.key as keyof typeof entry.skills] ? 'active' : ''}`}
+                onClick={() => onUpdate({
+                  skills: {
+                    ...entry.skills,
+                    [skill.key]: !entry.skills[skill.key as keyof typeof entry.skills]
+                  }
+                })}
+              >
+                <div className="skill-check">{entry.skills[skill.key as keyof typeof entry.skills] ? '✓' : '○'}</div>
+                <div className="skill-label">{skill.label}</div>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="notes-section">
+          <label>Reflections</label>
+          <textarea 
+            value={entry.notes}
+            onChange={(e) => onUpdate({ notes: e.target.value })}
+            placeholder="What happened today? How did skills help?"
+            className="notes-input"
+          />
+        </div>
+
+        <div className="encouragement">
+          ✨ You\'re showing up. That takes strength.
+        </div>
       </div>
     </div>
   )
 }
 
-function EntryCard({ entry, getMoodColor, onDelete }: { entry: DBTEntry; getMoodColor: (m: number) => string; onDelete: () => void }) {
+function EntryCard({ entry, getMoodColor, onDelete }: { 
+  entry: DBTEntry
+  getMoodColor: (m: number) => string
+  onDelete: () => void
+}) {
   const date = new Date(entry.date).toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
   const skillsUsed = Object.values(entry.skills).filter(Boolean).length
 
@@ -292,13 +332,9 @@ function EntryCard({ entry, getMoodColor, onDelete }: { entry: DBTEntry; getMood
             Mood: {entry.mood}/10
           </div>
         </div>
-        <div className="entry-skills">
+        <div className="entry-actions">
           <span className="skills-badge">{skillsUsed} skills</span>
-          {entry.worksheetUrl && (
-            <a href={entry.worksheetUrl} target="_blank" rel="noopener noreferrer" className="worksheet-icon" title="View worksheet">
-              📎
-            </a>
-          )}
+          {entry.worksheetUrl && <span className="worksheet-icon">📄</span>}
           <button className="icon-btn delete" onClick={onDelete}>✕</button>
         </div>
       </div>
