@@ -26,7 +26,7 @@ export default function DBTView({ data, update }: Props) {
         throw new Error('Not authenticated')
       }
 
-      const dbEntry = {
+      const dbEntry: any = {
         id: entry.id,
         user_id: user.id,
         date: entry.date,
@@ -34,8 +34,11 @@ export default function DBTView({ data, update }: Props) {
         skills: entry.skills,
         notes: entry.notes,
         worksheet_url: entry.worksheetUrl || null,
-        worksheet_page: entry.worksheetPage || 1,
         created_at: entry.createdAt
+      }
+      // Only include worksheet_page if not default
+      if (entry.worksheetPage && entry.worksheetPage !== 1) {
+        dbEntry.worksheet_page = entry.worksheetPage
       }
 
       if (todayEntry && todayEntry.id === entry.id) {
