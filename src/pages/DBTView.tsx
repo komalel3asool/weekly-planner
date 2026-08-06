@@ -26,9 +26,16 @@ export default function DBTView({ data, update }: Props) {
     try {
       if (todayEntry) {
         // Update existing
+        const mapped: any = {}
+        if (entry.mood !== undefined) mapped.mood = entry.mood
+        if (entry.skills !== undefined) mapped.skills = entry.skills
+        if (entry.notes !== undefined) mapped.notes = entry.notes
+        if (entry.worksheetUrl !== undefined) mapped.worksheet_url = entry.worksheetUrl
+        if (entry.worksheetPage !== undefined) mapped.worksheet_page = entry.worksheetPage
+        
         const { error: updateErr } = await supabase
           .from('dbt_entries')
-          .update(entry)
+          .update(mapped)
           .eq('id', todayEntry.id)
         
         if (updateErr) throw updateErr
@@ -58,11 +65,21 @@ export default function DBTView({ data, update }: Props) {
           ...entry
         }
         
+        const user = (await supabase.auth.getUser()).data.user
+        if (!user) throw new Error('Not authenticated')
+        
         const { error: insertErr } = await supabase
           .from('dbt_entries')
           .insert([{
-            ...newEntry,
-            user_id: (await supabase.auth.getUser()).data.user?.id
+            id: newEntry.id,
+            user_id: user.id,
+            date: newEntry.date,
+            mood: newEntry.mood,
+            skills: newEntry.skills,
+            notes: newEntry.notes,
+            worksheet_url: newEntry.worksheetUrl,
+            worksheet_page: newEntry.worksheetPage,
+            created_at: newEntry.createdAt
           }])
         
         if (insertErr) throw insertErr
