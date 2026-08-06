@@ -108,9 +108,10 @@ export default function DBTView({ data, update }: Props) {
         
         await syncToSupabase(newEntry)
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('DBT save error:', err)
-      setError('Failed to save. Make sure you\'re logged in.')
+      const msg = err?.message || err?.details || JSON.stringify(err)
+      setError(`Save failed: ${msg}`)
     } finally {
       setSyncing(false)
     }
