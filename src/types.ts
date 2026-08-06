@@ -64,6 +64,7 @@ export interface PdfReader {
   url: string
   currentPage: number
   notes: string
+  studyNotes?: string
 }
 
 export interface ShoppingItem {
@@ -83,7 +84,8 @@ export interface DBTEntry {
     emotionRegulation: boolean
     interpersonalEffectiveness: boolean
   }
-  notes: string
+  notes: string // Reflections
+  studyNotes: string // Personal study notes
   worksheetUrl?: string
   worksheetPage?: number
   createdAt: string

@@ -280,11 +280,26 @@
   line-height: 1.2;
 }
 
-.notes-section {
+.notes-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  flex: 1;
+  min-height: 150px;
+}
+
+.reflections-section,
+.study-notes-section {
   display: flex;
   flex-direction: column;
-  flex: 1;
-  min-height: 100px;
+}
+
+.reflections-section label,
+.study-notes-section label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+  color: var(--text);
 }
 
 .notes-input {
@@ -299,6 +314,15 @@
   color: var(--text);
   outline: none;
   transition: border-color 0.2s;
+  min-height: 120px;
+}
+
+.notes-input.reflections {
+  border-color: rgba(52, 199, 89, 0.3);
+}
+
+.notes-input.study-notes {
+  border-color: rgba(88, 86, 214, 0.3);
 }
 
 .notes-input:focus {

@@ -18,6 +18,8 @@ export default function DBTView({ data, update }: Props) {
   const [syncing, setSyncing] = useState(false)
   const [error, setError] = useState('')
   const worksheetFileRef = useRef<HTMLInputElement>(null)
+  const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null)
+  const reflectionsTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   const syncToSupabase = async (entry: DBTEntry) => {
     try {
@@ -33,6 +35,7 @@ export default function DBTView({ data, update }: Props) {
         mood: entry.mood,
         skills: entry.skills,
         notes: entry.notes,
+        study_notes: entry.studyNotes,
         worksheet_url: entry.worksheetUrl || null,
         created_at: entry.createdAt
       }
@@ -96,6 +99,7 @@ export default function DBTView({ data, update }: Props) {
             interpersonalEffectiveness: false
           },
           notes: entry.notes || '',
+          studyNotes: entry.studyNotes || '',
           worksheetUrl: entry.worksheetUrl,
           worksheetPage: entry.worksheetPage || 1,
           createdAt: new Date().toISOString()
@@ -115,6 +119,20 @@ export default function DBTView({ data, update }: Props) {
     } finally {
       setSyncing(false)
     }
+  }
+
+  const debouncedReflectionsSave = (text: string) => {
+    if (reflectionsTimeoutRef.current) clearTimeout(reflectionsTimeoutRef.current)
+    reflectionsTimeoutRef.current = setTimeout(() => {
+      addOrUpdateEntry({ notes: text })
+    }, 1500)
+  }
+
+  const debouncedNotesSave = (text: string) => {
+    if (notesTimeoutRef.current) clearTimeout(notesTimeoutRef.current)
+    notesTimeoutRef.current = setTimeout(() => {
+      addOrUpdateEntry({ studyNotes: text })
+    }, 1500)
   }
 
   const handleWorksheetUpload = async (file: File) => {
@@ -205,6 +223,8 @@ export default function DBTView({ data, update }: Props) {
         <TodayEntry 
           entry={todayEntry} 
           onUpdate={addOrUpdateEntry} 
+          onReflectionsChange={debouncedReflectionsSave}
+          onNotesChange={debouncedNotesSave}
           getMoodColor={getMoodColor}
           onWorksheetUpload={handleWorksheetUpload}
           uploading={uploading}
@@ -258,9 +278,11 @@ function StartEntry({ onStart }: { onStart: (entry: Partial<DBTEntry>) => void }
   )
 }
 
-function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploading, syncing, worksheetFileRef }: {
+function TodayEntry({ entry, onUpdate, onReflectionsChange, onNotesChange, getMoodColor, onWorksheetUpload, uploading, syncing, worksheetFileRef }: {
   entry: DBTEntry
   onUpdate: (e: Partial<DBTEntry>) => void
+  onReflectionsChange: (text: string) => void
+  onNotesChange: (text: string) => void
   getMoodColor: (m: number) => string
   onWorksheetUpload: (file: File) => void
   uploading: boolean
@@ -378,15 +400,26 @@ function TodayEntry({ entry, onUpdate, getMoodColor, onWorksheetUpload, uploadin
           </div>
         </div>
 
-        <div className="notes-section">
-          <label>Reflections</label>
-          <textarea 
-            value={entry.notes}
-            onChange={(e) => onUpdate({ notes: e.target.value })}
-            placeholder="What happened today? How did skills help? (Auto-saves as you type)"
-            className="notes-input"
-            disabled={syncing}
-          />
+        <div className="notes-tabs">
+          <div className="reflections-section">
+            <label>Reflections</label>
+            <textarea 
+              defaultValue={entry.notes}
+              onChange={(e) => onReflectionsChange(e.target.value)}
+              placeholder="What happened today? How did skills help?"
+              className="notes-input reflections"
+            />
+          </div>
+
+          <div className="study-notes-section">
+            <label>📚 Study Notes</label>
+            <textarea 
+              defaultValue={entry.studyNotes}
+              onChange={(e) => onNotesChange(e.target.value)}
+              placeholder="Personal notes, insights, things to remember..."
+              className="notes-input study-notes"
+            />
+          </div>
         </div>
 
         <div className="encouragement">

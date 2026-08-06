@@ -10,6 +10,7 @@ interface Props {
 
 export default function PdfView({ data, update }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const notesTimeoutRef = useRef<NodeJS.Timeout | null>(null)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
 
@@ -25,7 +26,6 @@ export default function PdfView({ data, update }: Props) {
     setError('')
     
     try {
-      // Upload to storage
       const fileExt = file.name.split('.').pop()
       const fileName = `pdf-${Date.now()}.${fileExt}`
       const filePath = `pdf-documents/${fileName}`
@@ -40,13 +40,13 @@ export default function PdfView({ data, update }: Props) {
         .from('pdf-documents')
         .getPublicUrl(filePath)
 
-      // Update PDF reader
       update(d => ({
         ...d,
         pdfReader: {
           url: publicUrl,
           currentPage: 1,
-          notes: ''
+          notes: '',
+          studyNotes: ''
         }
       }))
       console.log('✅ PDF uploaded')
@@ -58,11 +58,21 @@ export default function PdfView({ data, update }: Props) {
     }
   }
 
+  const debouncedNotesSave = (notes: string) => {
+    if (notesTimeoutRef.current) clearTimeout(notesTimeoutRef.current)
+    notesTimeoutRef.current = setTimeout(() => {
+      update(d => ({
+        ...d,
+        pdfReader: { ...d.pdfReader, notes }
+      }))
+    }, 1500)
+  }
+
   const clearPdf = () => {
     if (confirm('Clear this PDF?')) {
       update(d => ({
         ...d,
-        pdfReader: { url: '', currentPage: 1, notes: '' }
+        pdfReader: { url: '', currentPage: 1, notes: '', studyNotes: '' }
       }))
     }
   }
@@ -119,7 +129,7 @@ export default function PdfView({ data, update }: Props) {
             <div className="pdf-embed">
               {pdf.url.endsWith('.pdf') ? (
                 <iframe 
-                  src={`${pdf.url}#page=${pdf.currentPage}`}
+                  src={pdf.url + '#page=' + pdf.currentPage}
                   style={{ width: '100%', height: '100%', border: 'none' }}
                   title="PDF Document"
                 />
@@ -134,19 +144,33 @@ export default function PdfView({ data, update }: Props) {
           </div>
 
           <div className="notes-panel">
-            <div className="notes-header">
-              <h3>Notes</h3>
-              <span className="page-tracker">Page {pdf.currentPage}</span>
+            <div className="notes-section">
+              <div className="notes-header">
+                <h3>Reading Notes</h3>
+                <span className="page-tracker">Page {pdf.currentPage}</span>
+              </div>
+              <textarea
+                defaultValue={pdf.notes}
+                onChange={(e) => debouncedNotesSave(e.target.value)}
+                placeholder="Take notes while reading..."
+                className="notes-textarea"
+              />
             </div>
-            <textarea
-              className="notes-textarea"
-              value={pdf.notes}
-              onChange={(e) => update(d => ({
-                ...d,
-                pdfReader: { ...d.pdfReader, notes: e.target.value }
-              }))}
-              placeholder="Take notes while reading..."
-            />
+
+            <div className="study-notes-section">
+              <div className="study-notes-header">
+                <h3>📚 Study Notes</h3>
+              </div>
+              <textarea
+                defaultValue={pdf.studyNotes || ''}
+                onChange={(e) => update(d => ({
+                  ...d,
+                  pdfReader: { ...d.pdfReader, studyNotes: e.target.value }
+                }))}
+                placeholder="Personal study notes, key concepts, things to remember..."
+                className="notes-textarea study-notes"
+              />
+            </div>
           </div>
         </div>
       )}
